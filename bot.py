@@ -1,4 +1,12 @@
 ###############################################################################
+from aiogram.dispatcher import FSMContext
+from aiogram import executor
+from dict import ruDictionary, uzDictionary
+from aiogram.dispatcher.filters.state import StatesGroup, State
+from pyzbar.pyzbar import decode
+import numpy as np
+import cv2
+import configparser
 from random import randint
 
 import logging
@@ -16,18 +24,28 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.types import ContentType, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 
-import cv2
-import numpy as np
-from pyzbar.pyzbar import decode
+from repository import User, Ticket, Atm
+from db import Database
+
+config_file = 'config.ini'
+db = Database(config_file)
+ticket = Ticket(db)
+user = User(db)
+atm = Atm(db)
+
 # from PIL import Image
 
-GROUP_ID = -1001905509764
+config = configparser.ConfigParser()
+config.read(config_file)
+
+GROUP_ID = config.get('bot', 'group_id')
+TOKEN = config.get('bot', 'token')
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 
 # init
-bot = Bot(token='6256030003:AAHt1Ui_MZFEkz7wngxLabxoeihRx4Fn-lg', parse_mode="HTML")
+bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
 
@@ -35,96 +53,9 @@ dp.middleware.setup(LoggingMiddleware())
 
 ################################################################################
 
-import sqlite3
-import mysql.connector as mariadb
-from mysql.connector import Error
-
-try:
-    con = mariadb.connect(user= 'test', password = '@bvMT2j0Q05q', host = '68.183.75.13', port = '3306', db = 'SupportBot')
-except Error as e:
-    print(f"Error connecting to MySQL database: {e}")
-
-
-try:
-    cur = con.cursor()
-except mariadb.Error as e:
-    if isinstance(e, mariadb.errors.InterfaceError) and "Connection reset by peer" in str(e):
-        print("Connection reset by peer. Reconnecting...")
-        try:
-            con = mariadb.connect(user= 'test', password = '@bvMT2j0Q05q', host = '68.183.75.13', port = '3306', db = 'SupportBot')
-        except Error as e:
-            print(f"Error connecting to MySQL database: {e}")
-    else:
-        print(f"Error executing query: {e}")
-                
-
-def user_info(user_id):
-    q = "SELECT * FROM user WHERE Id = '%s'" % (str(user_id),)
-    result = cur.execute(q)
-    result = cur.fetchone()
-
-    return result
-
-def user_exists(user_id):
-    q = "SELECT Id FROM user WHERE Id = '%s'" % (str(user_id),)
-    print(q)
-    result = cur.execute(q)
-    result = cur.fetchall()
-    print(result)
-
-    return bool(len(result))
-
-def admin_exists(user_id):
-    q = "SELECT admin FROM admins WHERE admin = '%s'" % (str(user_id),)
-    print(q)
-    result = cur.execute(q)
-    result = cur.fetchall()
-    print(result)
-
-    return bool(len(result))
-
-def add_user(name, num, user_id):
-
-    cur.execute("INSERT INTO user (Name, Phone, Id) VALUES ('%s', '%s', '%d')" % (name, num, user_id) )
-    
-    con.commit()
-
-def num_exists(num):
-    result = cur.execute("SELECT `num` FROM `ticket` WHERE `num` = ?", (str(num),))
-
-    return bool(len(result.fetchall()))    
-
-def add_status(user_id, com, cats, serialNum):
-
-    sql = "INSERT INTO ticket (userid, message, category, serial) VALUES ('%d', '%s', '%s', '%s')"
-    data = (user_id, com, cats, serialNum)
-
-    cur.execute(sql % data)
-    # cur.execute("INSERT INTO ticket (userid, message) VALUES ('%d', '%s')" % (user_id, com) )
-    
-    con.commit()
-
-
-def change_status( num, status ):
-
-    cur.execute("UPDATE ticket SET status = ? WHERE num = ?" % (status), (num))
-
-    con.commit()
-
-# def findTickets( user_id ):
-
-#     cur.execute("SELECT `num` FROM `ticket` WHERE `userid` = ?", (str(user_id),))
-#     cur.fetchall()
-
-################################################################################
-
-################################################################################
-
-from aiogram.dispatcher.filters.state import StatesGroup, State
-
 class userStates(StatesGroup):
-    
-    Registration = State() 
+
+    Registration = State()
     Complaint = State()
     Q3 = State()
     Q4 = State()
@@ -144,16 +75,15 @@ class userStates(StatesGroup):
 
 ################################################################################
 
-from aiogram.dispatcher import FSMContext
-from aiogram import types
-from dict import ruDictionary, uzDictionary
-
-share_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-share_button = types.KeyboardButton(text="📱 Отправить", request_contact=True)
+share_keyboard = types.ReplyKeyboardMarkup(
+    resize_keyboard=True, one_time_keyboard=True)
+share_button = types.KeyboardButton(
+    text="📱 Отправить", request_contact=True)
 share_keyboard.add(share_button)
 
+
 def chooseLanguage():
- 
+
     buttons = [
         types.InlineKeyboardButton(text="Ru", callback_data="Ru"),
         types.InlineKeyboardButton(text="Uz", callback_data="Uz"),
@@ -163,82 +93,80 @@ def chooseLanguage():
     keyboard.add(*buttons)
     return keyboard
 
-    
 
-@dp.message_handler(commands = "start", state= '*' )
+@dp.message_handler(commands="start", state='*')
 async def start(message: types.Message, state: FSMContext):
     userid = message.from_user.id
     # await bot.delete_message(chat_id=userid, message_id=message.message_id)
 
-    if(admin_exists(message.from_user.id)):
-        await bot.send_message( chat_id = message.chat.id, text = "🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi" )
+    if (user.admin_exists(message.from_user.id)):
+        await bot.send_message(chat_id=message.chat.id, text="🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi")
 
+    elif (not user.exists(message.from_user.id)):
 
-    elif(not user_exists(message.from_user.id)):
-
-        forId1 = await bot.send_message( chat_id = message.chat.id, text ="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=chooseLanguage())
+        forId1 = await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=chooseLanguage())
         id1 = forId1.message_id
         print('22222222222222222222222222222222222222')
         await userStates.notExist.set()
-        @dp.callback_query_handler(text = "Ru", state=userStates.notExist)
+
+        @dp.callback_query_handler(text="Ru", state=userStates.notExist)
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await call.answer('Done')
             language = ruDictionary
             await state.update_data(language=language)
-            
-            await bot.edit_message_text( chat_id = call.message.chat.id, message_id= call.message.message_id, text= language['7'] )
 
-            m = await bot.send_message( chat_id = call.message.chat.id, text =language['1'], reply_markup=share_keyboard)
+            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
+
+            m = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard)
             id = m.message_id
             await state.update_data(Id1=id)
 
-        @dp.callback_query_handler(text = "Uz", state= userStates.notExist)
+        @dp.callback_query_handler(text="Uz", state=userStates.notExist)
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await call.answer('Done')
             language = uzDictionary
             await state.update_data(language=language)
 
-            await bot.edit_message_text( chat_id = call.message.chat.id, message_id= call.message.message_id, text= language['7'] )
+            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
 
-            m = await bot.send_message( chat_id = call.message.chat.id, text = language['1'], reply_markup=share_keyboard)
+            m = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard)
             id = m.message_id
             await state.update_data(Id1=id)
 
     else:
         await state.update_data(userId=userid)
-        print('11111111111111111111111111111111111111111111111111111111111111111111111111111')
+        print(
+            '11111111111111111111111111111111111111111111111111111111111111111111111111111')
         await userStates.exist.set()
-        forId1 = await bot.send_message( chat_id = message.chat.id, text = "🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=chooseLanguage())
+        forId1 = await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=chooseLanguage())
         id1 = forId1.message_id
 
-        @dp.callback_query_handler(text = "Ru", state= userStates.exist)
+        @dp.callback_query_handler(text="Ru", state=userStates.exist)
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await call.answer('Done')
 
             language = ruDictionary
             await state.update_data(language=language)
-            
-            await bot.edit_message_text( chat_id = call.message.chat.id, message_id= call.message.message_id, text= language['7'] )
 
-            m = await bot.send_message( chat_id = call.message.chat.id, text = language['2'], reply_markup=addComp(language['5'], language['11'], language['14']))
+            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
+
+            m = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=addComp(language['5'], language['11'], language['14']))
             id = m.message_id
             await state.update_data(button=id)
             await userStates.Q3.set()
 
-        @dp.callback_query_handler(text = "Uz", state= userStates.exist)
+        @dp.callback_query_handler(text="Uz", state=userStates.exist)
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await call.answer('Done')
             language = uzDictionary
             await state.update_data(language=language)
 
-            await bot.edit_message_text( chat_id = call.message.chat.id, message_id= call.message.message_id, text= language['7'] )
+            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
 
-            m = await bot.send_message( chat_id = call.message.chat.id, text = language['2'], reply_markup=addComp(language['5'], language['11'], language['14']))
+            m = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=addComp(language['5'], language['11'], language['14']))
             id = m.message_id
             await state.update_data(button=id)
             await userStates.Q3.set()
-       
-
 
 
 @dp.message_handler(content_types=types.ContentType.CONTACT, state='*')
@@ -250,7 +178,7 @@ async def get_contact(message: types.Message, state: FSMContext):
 
     await state.update_data(userId=userid)
 
-    add_user(name, phone, userid)
+    user.add(name, phone, userid)
 
     temp = await state.get_data('Id1')
     messageId = temp['Id1']
@@ -261,7 +189,7 @@ async def get_contact(message: types.Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
 
-    m = await bot.send_message( chat_id = message.chat.id, text = language['2'], reply_markup=addComp(language['5'], language['11'], language['14']))
+    m = await bot.send_message(chat_id=message.chat.id, text=language['2'], reply_markup=addComp(language['5'], language['11'], language['14']))
 
     id = m.message_id
     await state.update_data(button=id)
@@ -273,8 +201,7 @@ async def get_contact(message: types.Message, state: FSMContext):
 ################################################################################
 
 
-
-@dp.callback_query_handler(text = "add", state='*')
+@dp.callback_query_handler(text="add", state='*')
 async def message_handler(call: types.CallbackQuery, state: FSMContext):
     await call.answer('Done')
     await state.update_data(categoria=1)
@@ -282,17 +209,17 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
     language = tempForLanguage['language']
 
     await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-   
-    m = await bot.send_message( chat_id = call.message.chat.id, text = language['8'], reply_markup=noPhoto(language['9'], language['12']))
+
+    m = await bot.send_message(chat_id=call.message.chat.id, text=language['8'], reply_markup=noPhoto(language['9'], language['12']))
     noPhotoButton = m.message_id
     await state.update_data(photoButton=noPhotoButton)
     await userStates.Q6.set()
 
-    @dp.callback_query_handler(text = "enter", state='*')
+    @dp.callback_query_handler(text="enter", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-        # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))   
-        await bot.send_message( chat_id = call.message.chat.id, text = language['13'])  
+        # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))
+        await bot.send_message(chat_id=call.message.chat.id, text=language['13'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
         if categoria == 1:
@@ -302,8 +229,7 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 3:
             await userStates.Q12.set()
 
-
-    @dp.callback_query_handler(text = "noPhoto", state='*')
+    @dp.callback_query_handler(text="noPhoto", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
         await state.update_data(existPhoto=0)
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['3'])
@@ -314,7 +240,8 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 2:
             await userStates.Q8.set()
         if categoria == 3:
-            await userStates.Q13.set()        
+            await userStates.Q13.set()
+
 
 @dp.message_handler(state=userStates.Q9)
 async def enter(message: types.Message, state: FSMContext):
@@ -322,27 +249,25 @@ async def enter(message: types.Message, state: FSMContext):
     language = tempForLanguage['language']
     s = message.text
 
-    q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(s),)
-    region = cur.execute(q)
-    region = cur.fetchall()
+    region = atm.read(str(s))['State']
 
     if len(region) != 0:
         await state.update_data(existPhoto=1)
         await state.update_data(serialNum=s)
-        await bot.send_message( chat_id = message.chat.id, text = language['3'])
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
         await userStates.Q4.set()
     else:
-        m = await bot.send_message( chat_id= message.chat.id, text= language['15'], reply_markup= noPhoto(language['9'], language['12']) )        
+        m = await bot.send_message(chat_id=message.chat.id, text=language['15'], reply_markup=noPhoto(language['9'], language['12']))
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q6.set()
 
+
 @dp.message_handler(content_types=types.ContentType.PHOTO, state=userStates.Q6)
-async def get_photo(message: types.Message, state: FSMContext):    
+async def get_photo(message: types.Message, state: FSMContext):
 
     await message.photo[-1].download('qrcode.jpg')
 
-    
     # result = decode(Image.open('qrcode.png'))
     # print(result)
     imgQRcode = cv2.imread('qrcode.jpg')
@@ -354,18 +279,15 @@ async def get_photo(message: types.Message, state: FSMContext):
         data = barcode.data.decode('utf-8')
         print(data)
 
-
-
     if len(code) != 0:
         size = 42
         c = data[size]
         s = c
-        
+
         while size != len(data)-1:
             size = size + 1
             c = data[size]
             s = s + c
-            
 
         await state.update_data(existPhoto=1)
         await state.update_data(serialNum=s)
@@ -376,8 +298,8 @@ async def get_photo(message: types.Message, state: FSMContext):
         messegeId = temp['photoButton']
 
         await bot.edit_message_text(chat_id=message.chat.id, message_id=messegeId, text=language['8'])
-        
-        await bot.send_message( chat_id = message.chat.id, text = language['3'])
+
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
         if categoria == 1:
@@ -397,16 +319,16 @@ async def get_photo(message: types.Message, state: FSMContext):
 
         await bot.edit_message_text(chat_id=message.chat.id, message_id=messegeId, text=language['8'])
 
-        m = await bot.send_message( chat_id = message.chat.id, text = language['10'], reply_markup=noPhoto(language['9'], language['12']))
+        m = await bot.send_message(chat_id=message.chat.id, text=language['10'], reply_markup=noPhoto(language['9'], language['12']))
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q6.set()
 
-        @dp.callback_query_handler(text = "enter", state='*')
+        @dp.callback_query_handler(text="enter", state='*')
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-            # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))   
-            await bot.send_message( chat_id = call.message.chat.id, text = language['13'])  
+            # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))
+            await bot.send_message(chat_id=call.message.chat.id, text=language['13'])
             tempCategoria = await state.get_data('categoria')
             categoria = tempCategoria['categoria']
             if categoria == 1:
@@ -416,7 +338,7 @@ async def get_photo(message: types.Message, state: FSMContext):
             if categoria == 3:
                 await userStates.Q12.set()
 
-        @dp.callback_query_handler(text = "noPhoto", state='*')
+        @dp.callback_query_handler(text="noPhoto", state='*')
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await state.update_data(existPhoto=0)
             await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['3'])
@@ -435,13 +357,11 @@ async def Complaint(message: types.Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
 
-    uinfo = user_info(message.chat.id)
- 
-    
+    uinfo = user.info(message.chat.id)
+
     com1 = message.text
 
     com = com1.replace("'", "''")
-
 
     currentHour = datetime.now().hour
 
@@ -465,93 +385,67 @@ async def Complaint(message: types.Message, state: FSMContext):
         result3 = re.findall(x, com)
 
     cats = []
-    if len(result1)!=0:
+    if len(result1) != 0:
         cats.append('cart')
-    if len(result2)!=0:
+    if len(result2) != 0:
         cats.append('cashout')
-    if len(result3)!=0:
+    if len(result3) != 0:
         cats.append('exchange')
 
     userid = message.from_user.id
 
     if existPhoto == 0:
 
-        await bot.send_message(chat_id='-1001905509764', text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + message.text)
+        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + message.text)
 
-        if len(cats)==1:
-            add_status(userid, com, cats[0], '-')
+        if len(cats) == 1:
+            ticket.add_status(userid, com, cats[0], '-')
 
-        if len(cats)==2:
+        if len(cats) == 2:
             tempStr = cats[0]+','+cats[1]
-            add_status(userid, com, tempStr, '-')
+            ticket.add_status(userid, com, tempStr, '-')
 
-        if len(cats)==3:
+        if len(cats) == 3:
             tempStr = cats[0]+','+cats[1]+','+cats[2]
-            add_status(userid, com, tempStr, '-')
+            ticket.add_status(userid, com, tempStr, '-')
 
-        if len(cats)==0:
-            add_status(userid, com, 'other', '-')
-    
+        if len(cats) == 0:
+            ticket.add_status(userid, com, 'other', '-')
+
     if existPhoto == 1:
         tempSerialNum = await state.get_data('serialNum')
         serialNum = tempSerialNum['serialNum']
 
-        print('serial num: ' + str(serialNum))
+        atm_data = atm.read(str(serialNum))
+        region = atm_data['State']
+        TerminalID = atm_data['TerminalID']
+        Location = atm_data['Location']
 
-        q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        region = cur.execute(q)
-        region = cur.fetchone()
+        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
-        print('region: ' + str(region))
-
-        q = "SELECT TerminalID FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        TerminalID = cur.execute(q)
-        TerminalID = cur.fetchone()
-
-        q = "SELECT Location FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        Location = cur.execute(q)
-        Location = cur.fetchone()
-
-        await bot.send_message(chat_id='-1001905509764', text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
-
-        print('serial num: ' + str(serialNum))
-
-        q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        region = cur.execute(q)
-        region = cur.fetchone()
-
-        print('region: ' + str(region))
-
-        q = "SELECT admin FROM admins WHERE State = '%s'" % (str(region[0]),)
-        chatId = cur.execute(q)
-        chatId = cur.fetchall()
-
-        print('chat id: ' + str(chatId))
+        chatId = user.admin_by_state(str(region[0]))
 
         for i in chatId:
             await bot.send_message(chat_id=str(i[0]), text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
+        if len(cats) == 1:
+            ticket.add_status(userid, com, cats[0], serialNum)
 
-        if len(cats)==1:
-            add_status(userid, com, cats[0], serialNum)
-
-        if len(cats)==2:
+        if len(cats) == 2:
             tempStr = cats[0]+','+cats[1]
-            add_status(userid, com, tempStr, serialNum)
+            ticket.add_status(userid, com, tempStr, serialNum)
 
-        if len(cats)==3:
+        if len(cats) == 3:
             tempStr = cats[0]+','+cats[1]+','+cats[2]
-            add_status(userid, com, tempStr, serialNum)
+            ticket.add_status(userid, com, tempStr, serialNum)
 
-        if len(cats)==0:
-            add_status(userid, com, 'other', serialNum)
-    
+        if len(cats) == 0:
+            ticket.add_status(userid, com, 'other', serialNum)
 
     await userStates.Q3.set()
 
 
-
-@dp.callback_query_handler(text = "card", state='*')
+@dp.callback_query_handler(text="card", state='*')
 async def message_handler(call: types.CallbackQuery, state: FSMContext):
     await call.answer('Done')
     await state.update_data(categoria=2)
@@ -559,17 +453,17 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
     language = tempForLanguage['language']
 
     await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-   
-    m = await bot.send_message( chat_id = call.message.chat.id, text = language['8'], reply_markup=noPhoto(language['9'], language['12']))
+
+    m = await bot.send_message(chat_id=call.message.chat.id, text=language['8'], reply_markup=noPhoto(language['9'], language['12']))
     noPhotoButton = m.message_id
     await state.update_data(photoButton=noPhotoButton)
     await userStates.Q7.set()
 
-    @dp.callback_query_handler(text = "enter", state='*')
+    @dp.callback_query_handler(text="enter", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-        # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))   
-        await bot.send_message( chat_id = call.message.chat.id, text = language['13'])  
+        # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))
+        await bot.send_message(chat_id=call.message.chat.id, text=language['13'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
         if categoria == 1:
@@ -579,7 +473,7 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 3:
             await userStates.Q12.set()
 
-    @dp.callback_query_handler(text = "noPhoto", state='*')
+    @dp.callback_query_handler(text="noPhoto", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
         await state.update_data(existPhoto=0)
         print('11')
@@ -593,34 +487,33 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 3:
             await userStates.Q13.set()
 
+
 @dp.message_handler(state=userStates.Q10)
 async def enter(message: types.Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
     s = message.text
 
-    q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(s),)
-    region = cur.execute(q)
-    region = cur.fetchall()
+    atm_data = atm.read(str(s))
+    region = atm_data['State']
 
     if len(region) != 0:
         await state.update_data(existPhoto=1)
         await state.update_data(serialNum=s)
-        await bot.send_message( chat_id = message.chat.id, text = language['3'])
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
         await userStates.Q8.set()
     else:
-        m = await bot.send_message( chat_id= message.chat.id, text= language['15'], reply_markup= noPhoto(language['9'], language['12']) )        
+        m = await bot.send_message(chat_id=message.chat.id, text=language['15'], reply_markup=noPhoto(language['9'], language['12']))
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q7.set()
 
 
 @dp.message_handler(content_types=types.ContentType.PHOTO, state=userStates.Q7)
-async def get_photo(message: types.Message, state: FSMContext):    
+async def get_photo(message: types.Message, state: FSMContext):
 
     await message.photo[-1].download('qrcode.jpg')
 
-    
     # result = decode(Image.open('qrcode.png'))
     # print(result)
     imgQRcode = cv2.imread('qrcode.jpg')
@@ -632,13 +525,11 @@ async def get_photo(message: types.Message, state: FSMContext):
         data = barcode.data.decode('utf-8')
         print(data)
 
-
-
     if len(code) != 0:
         size = 42
         c = data[size]
         s = c
-        
+
         while size != len(data)-1:
             size = size + 1
             c = data[size]
@@ -653,8 +544,8 @@ async def get_photo(message: types.Message, state: FSMContext):
         messegeId = temp['photoButton']
 
         await bot.edit_message_text(chat_id=message.chat.id, message_id=messegeId, text=language['8'])
-        
-        await bot.send_message( chat_id = message.chat.id, text = language['3'])
+
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
         if categoria == 1:
@@ -674,16 +565,16 @@ async def get_photo(message: types.Message, state: FSMContext):
 
         await bot.edit_message_text(chat_id=message.chat.id, message_id=messegeId, text=language['8'])
 
-        m = await bot.send_message( chat_id = message.chat.id, text = language['10'], reply_markup=noPhoto(language['9'], language['12']))
+        m = await bot.send_message(chat_id=message.chat.id, text=language['10'], reply_markup=noPhoto(language['9'], language['12']))
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q6.set()
 
-        @dp.callback_query_handler(text = "enter", state='*')
+        @dp.callback_query_handler(text="enter", state='*')
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-            # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))   
-            await bot.send_message( chat_id = call.message.chat.id, text = language['13'])  
+            # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))
+            await bot.send_message(chat_id=call.message.chat.id, text=language['13'])
             tempCategoria = await state.get_data('categoria')
             categoria = tempCategoria['categoria']
             if categoria == 1:
@@ -693,7 +584,7 @@ async def get_photo(message: types.Message, state: FSMContext):
             if categoria == 3:
                 await userStates.Q12.set()
 
-        @dp.callback_query_handler(text = "noPhoto", state='*')
+        @dp.callback_query_handler(text="noPhoto", state='*')
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await state.update_data(existPhoto=0)
             await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['3'])
@@ -706,12 +597,13 @@ async def get_photo(message: types.Message, state: FSMContext):
             if categoria == 3:
                 await userStates.Q13.set()
 
+
 @dp.message_handler(state=userStates.Q8)
 async def Complaint(message: types.Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
     print('12')
-    uinfo = user_info(message.chat.id)
+    uinfo = user.info(message.chat.id)
 
     com1 = message.text
 
@@ -733,58 +625,36 @@ async def Complaint(message: types.Message, state: FSMContext):
 
     if existPhoto == 0:
 
-        await bot.send_message(chat_id='-1001905509764', text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + message.text)
-        add_status(userid, com, "card", '-')
+        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + message.text)
+        ticket.add_status(userid, com, "card", '-')
 
-    
     if existPhoto == 1:
 
         tempSerialNum = await state.get_data('serialNum')
         serialNum = tempSerialNum['serialNum']
 
-        q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        region = cur.execute(q)
-        region = cur.fetchone()
+        atm_data = atm.read(str(s))
+        region = atm_data['State']
+        TerminalID = atm_data['TerminalID']
+        Location = atm_data['Location']
 
-        print('region: ' + str(region))
+        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
-        q = "SELECT TerminalID FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        TerminalID = cur.execute(q)
-        TerminalID = cur.fetchone()
-
-        q = "SELECT Location FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        Location = cur.execute(q)
-        Location = cur.fetchone()
-
-        await bot.send_message(chat_id='-1001905509764', text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
-
-        print('serial num: ' + str(serialNum))
-
-        q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        region = cur.execute(q)
-        region = cur.fetchone()
-
-        print('region: ' + str(region))
-
-        q = "SELECT admin FROM admins WHERE State = '%s'" % (str(region[0]),)
-        chatId = cur.execute(q)
-        chatId = cur.fetchall()
+        chatId = user.admin_by_state(str(region[0]))
 
         print('chat id: ' + str(chatId))
 
         for i in chatId:
             await bot.send_message(chat_id=str(i[0]), text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
-
         tempSerialNum = await state.get_data('serialNum')
         serialNum = tempSerialNum['serialNum']
-        add_status(userid, com, "card", serialNum)
-
-    
+        ticket.add_status(userid, com, "card", serialNum)
 
     await userStates.Q3.set()
 
-@dp.callback_query_handler(text = "cashout", state='*')
+
+@dp.callback_query_handler(text="cashout", state='*')
 async def message_handler(call: types.CallbackQuery, state: FSMContext):
     await call.answer('Done')
 
@@ -794,17 +664,17 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
     language = tempForLanguage['language']
 
     await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-   
-    m = await bot.send_message( chat_id = call.message.chat.id, text = language['8'], reply_markup=noPhoto(language['9'], language['12']))
+
+    m = await bot.send_message(chat_id=call.message.chat.id, text=language['8'], reply_markup=noPhoto(language['9'], language['12']))
     noPhotoButton = m.message_id
     await state.update_data(photoButton=noPhotoButton)
     await userStates.Q11.set()
 
-    @dp.callback_query_handler(text = "enter", state='*')
+    @dp.callback_query_handler(text="enter", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-        # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))   
-        await bot.send_message( chat_id = call.message.chat.id, text = language['13'])  
+        # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))
+        await bot.send_message(chat_id=call.message.chat.id, text=language['13'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
         if categoria == 1:
@@ -814,7 +684,7 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 3:
             await userStates.Q12.set()
 
-    @dp.callback_query_handler(text = "noPhoto", state='*')
+    @dp.callback_query_handler(text="noPhoto", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
         await state.update_data(existPhoto=0)
         print('1111')
@@ -828,34 +698,33 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 3:
             await userStates.Q13.set()
 
+
 @dp.message_handler(state=userStates.Q12)
 async def enter(message: types.Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
     s = message.text
 
-    q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(s),)
-    region = cur.execute(q)
-    region = cur.fetchall()
+    atm_data = atm.read(str(s))
+    region = atm_data['State']
 
     if len(region) != 0:
         await state.update_data(existPhoto=1)
         await state.update_data(serialNum=s)
-        await bot.send_message( chat_id = message.chat.id, text = language['3'])
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
         await userStates.Q13.set()
     else:
-        m = await bot.send_message( chat_id= message.chat.id, text= language['15'], reply_markup= noPhoto(language['9'], language['12']) )        
+        m = await bot.send_message(chat_id=message.chat.id, text=language['15'], reply_markup=noPhoto(language['9'], language['12']))
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q11.set()
 
 
 @dp.message_handler(content_types=types.ContentType.PHOTO, state=userStates.Q11)
-async def get_photo(message: types.Message, state: FSMContext):    
+async def get_photo(message: types.Message, state: FSMContext):
 
     await message.photo[-1].download('qrcode.jpg')
 
-    
     # result = decode(Image.open('qrcode.png'))
     # print(result)
     imgQRcode = cv2.imread('qrcode.jpg')
@@ -867,13 +736,11 @@ async def get_photo(message: types.Message, state: FSMContext):
         data = barcode.data.decode('utf-8')
         print(data)
 
-
-
     if len(code) != 0:
         size = 42
         c = data[size]
         s = c
-        
+
         while size != len(data)-1:
             size = size + 1
             c = data[size]
@@ -888,8 +755,8 @@ async def get_photo(message: types.Message, state: FSMContext):
         messegeId = temp['photoButton']
 
         await bot.edit_message_text(chat_id=message.chat.id, message_id=messegeId, text=language['8'])
-        
-        await bot.send_message( chat_id = message.chat.id, text = language['3'])
+
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
         if categoria == 1:
@@ -909,16 +776,16 @@ async def get_photo(message: types.Message, state: FSMContext):
 
         await bot.edit_message_text(chat_id=message.chat.id, message_id=messegeId, text=language['8'])
 
-        m = await bot.send_message( chat_id = message.chat.id, text = language['10'], reply_markup=noPhoto(language['9'], language['12']))
+        m = await bot.send_message(chat_id=message.chat.id, text=language['10'], reply_markup=noPhoto(language['9'], language['12']))
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q6.set()
 
-        @dp.callback_query_handler(text = "enter", state='*')
+        @dp.callback_query_handler(text="enter", state='*')
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-            # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))   
-            await bot.send_message( chat_id = call.message.chat.id, text = language['13'])  
+            # await bot.send_photo(chat_id=call.message.chat.id, photo=open('instruction.jpg', 'rb'))
+            await bot.send_message(chat_id=call.message.chat.id, text=language['13'])
             tempCategoria = await state.get_data('categoria')
             categoria = tempCategoria['categoria']
             if categoria == 1:
@@ -928,7 +795,7 @@ async def get_photo(message: types.Message, state: FSMContext):
             if categoria == 3:
                 await userStates.Q12.set()
 
-        @dp.callback_query_handler(text = "noPhoto", state='*')
+        @dp.callback_query_handler(text="noPhoto", state='*')
         async def message_handler(call: types.CallbackQuery, state: FSMContext):
             await state.update_data(existPhoto=0)
             await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['3'])
@@ -941,13 +808,14 @@ async def get_photo(message: types.Message, state: FSMContext):
             if categoria == 3:
                 await userStates.Q13.set()
 
+
 @dp.message_handler(state=userStates.Q13)
 async def Complaint(message: types.Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
     print('1122')
-    uinfo = user_info(message.chat.id)
- 
+    uinfo = user.info(message.chat.id)
+
     com1 = message.text
 
     com = com1.replace("'", "''")
@@ -968,44 +836,22 @@ async def Complaint(message: types.Message, state: FSMContext):
 
     if existPhoto == 0:
 
-        await bot.send_message(chat_id='-1001905509764', text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + message.text)
-        add_status(userid, com, "cashout", '-')
+        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + message.text)
+        ticket.add_status(userid, com, "cashout", '-')
 
-    
     if existPhoto == 1:
 
         tempSerialNum = await state.get_data('serialNum')
         serialNum = tempSerialNum['serialNum']
 
-        print('serial num: ' + str(serialNum))
+        atm_data = atm.read(str(serialNum))
+        region = atm_data['State']
+        TerminalID = atm_data['TerminalID']
+        Location = atm_data['Location']
 
-        q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        region = cur.execute(q)
-        region = cur.fetchone()
+        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
-        print('region: ' + str(region))
-
-        q = "SELECT TerminalID FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        TerminalID = cur.execute(q)
-        TerminalID = cur.fetchone()
-
-        q = "SELECT Location FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        Location = cur.execute(q)
-        Location = cur.fetchone()
-
-        await bot.send_message(chat_id='-1001905509764', text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
-
-        print('serial num: ' + str(serialNum))
-
-        q = "SELECT State FROM atm WHERE UniqueID = '%s'" % (str(serialNum),)
-        region = cur.execute(q)
-        region = cur.fetchone()
-
-        print('region: ' + str(region))
-
-        q = "SELECT admin FROM admins WHERE State = '%s'" % (str(region[0]),)
-        chatId = cur.execute(q)
-        chatId = cur.fetchall()
+        chatId = user.admin_by_state(str(region[0]))
 
         print('chat id: ' + str(chatId))
 
@@ -1014,23 +860,21 @@ async def Complaint(message: types.Message, state: FSMContext):
 
         tempSerialNum = await state.get_data('serialNum')
         serialNum = tempSerialNum['serialNum']
-        add_status(userid, com, "cashout", serialNum)
-
-    
+        ticket.add_status(userid, com, "cashout", serialNum)
 
     await userStates.Q3.set()
 
-     
 
 ################################################################################
 
 ################################################################################
 
 def addComp(textForAdd, textForCard, textForCashOut):
- 
+
     buttons = [
         types.InlineKeyboardButton(text=textForCard, callback_data="card"),
-        types.InlineKeyboardButton(text=textForCashOut, callback_data="cashout"),
+        types.InlineKeyboardButton(
+            text=textForCashOut, callback_data="cashout"),
         types.InlineKeyboardButton(text=textForAdd, callback_data="add"),
     ]
 
@@ -1038,8 +882,9 @@ def addComp(textForAdd, textForCard, textForCashOut):
     keyboard.add(*buttons)
     return keyboard
 
+
 def noPhoto(textForAdd, textForEnter):
- 
+
     buttons = [
         types.InlineKeyboardButton(text=textForAdd, callback_data="noPhoto"),
         types.InlineKeyboardButton(text=textForEnter, callback_data="enter"),
@@ -1051,14 +896,14 @@ def noPhoto(textForAdd, textForEnter):
     return keyboard
 
 ################################################################################
-@dp.message_handler(content_types=types.ContentType.ANY, state= '*' )
+
+
+@dp.message_handler(content_types=types.ContentType.ANY, state='*')
 async def Complaint(message: types.Message):
     if message.chat.id != GROUP_ID:
-        await bot.delete_message( chat_id=message.chat.id, message_id= message.message_id )
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 ################################################################################
 
-
-from aiogram import executor
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
