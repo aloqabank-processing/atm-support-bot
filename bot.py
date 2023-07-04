@@ -163,7 +163,9 @@ def chooseLanguage():
     keyboard.add(*buttons)
     return keyboard
 
-    
+    #ПРИ НАЖАТИИ КНОПКИ СТАРТ ИДЕТ ВЫБОР ЯЗЫКА И В ПОСЛЕДУЮЩЕМ ВСЕ ТЕКСТЫ БУДУТ ВЫВОДИТЬСЯ ИЗ ОПРНДНЛНННОГО СЛОВАРЯ КОТОРЫЙ ВЫБРАЛ ПОЛЬЗОВАТЕЛЬ
+    #В СЛУЧАЕ ЕСЛИ БОТ БЫЛ ПЕРЕЗАПУЩЕН И ПОЛЬЗОВАТЕЛЬ НЕ НАЖАЛ КНОПКУ СТАРТ И НЕ ВЫБРАЛ ЯЗЫК ЗАНОВО ВЫХОДИТ ОШИБКА, БОТ НЕ ПОНИМАЕТ НА КАКОМ ЯЗЫКЕ ВЫДАВАТЬ ТЕКСТ
+    #МОЖНО РЕШИТЬ СОХРАНЯЯ ЯЗЫК ПОЛЬЗОВАТЕЛЯ В БД
 
 @dp.message_handler(commands = "start", state= '*' )
 async def start(message: types.Message, state: FSMContext):
@@ -272,7 +274,9 @@ async def get_contact(message: types.Message, state: FSMContext):
 
 ################################################################################
 
-
+    #КОЛБЭКИ ADD, CASHOUT И CARD ОТЛИЧАЮТСЯ ТОЛЬКО ВЫБОРОМ КАТЕГОРИИ ПОЛЬЗОВАТЕЛЕМ, НО ФУНКЦИОНАЛ ПОЛНОСТЬЮ ИДЕНТИЧЕН
+    #МОЖНО НЕ ПРОПИСЫВАТЬ ФУНКЦИОНАЛ В КАЖДОМ КОЛБЭКЕ, А ВЫВЕСТИ ОТДЕЛЬНО
+    #КОД ЗАХЛАМЛЯЕТСЯ
 
 @dp.callback_query_handler(text = "add", state='*')
 async def message_handler(call: types.CallbackQuery, state: FSMContext):
@@ -302,6 +306,9 @@ async def message_handler(call: types.CallbackQuery, state: FSMContext):
         if categoria == 3:
             await userStates.Q12.set()
 
+    #КАК РАЗ ИЗ-ЗА ТОГО ЧТО У ТРЕХ ОСНОВНЫХ КОЛБЭКОВ МИНИМАЛЬНО РАЗЛИЧАЮЩИЙСЯ ФУНКЦИОНАЛ ПРИШЛОСЬ ДОБАВИТЬ КУЧУ РАЗНЫХ СОСТОЯНИХ
+    #ЧТОБЫ БОТ ОРИЕНИРОВАЛСЯ В НИХ
+    #КОЛБЭКИ ВНУТРИ КОЛБЭКОВ ТАКЖЕ ЯВЛЯЮТСЯ ПРОБЛЕМОЙ
 
     @dp.callback_query_handler(text = "noPhoto", state='*')
     async def message_handler(call: types.CallbackQuery, state: FSMContext):
@@ -336,6 +343,10 @@ async def enter(message: types.Message, state: FSMContext):
         noPhotoButton = m.message_id
         await state.update_data(photoButton=noPhotoButton)
         await userStates.Q6.set()
+
+    #ФОТО QR КОДА ОТПРАВЛЯЕМОЕ ПОЛЬЗОВАТЕЛЕМ СОХРАНЯЕТСЯ В ТОЙ ЖЕ ПАПКЕ ПОД ТЕМ ЖЕ НАЗВАНИЕМ
+    #СУЩЕСТВУЕТ ВОЗМОЖНОСТЬ ВОЗНИКНОВЕНИЯ ОШИБКИ ЕСЛИ ДВА ПОЛЬЗОВАТЕЛЯ ОТПРАВЛЯЮТ ФОТОГРАФИИ ОДНОВРЕМЕННО (ХОТЯ Я ПРОВЕРЯЛ, ОШИБОК НЕ ВОЗНИКАЛО)
+    #ПРЕДПОЛАГАЕМОЕ РЕШЕНИЕ: СОХРАНЯТЬ ФОТО С НАЗВАНИЕМ В ВИДЕ USERID ПОЛЬЗОВАТЕЛЯ ОТПРАВИВШЕГО ЕГО. ТОГДА ВНУТРИ ЛОГИКИ БОТА НЕ БУДЕТ ВОЗНИКАТЬ ПУТАНИЦЫ
 
 @dp.message_handler(content_types=types.ContentType.PHOTO, state=userStates.Q6)
 async def get_photo(message: types.Message, state: FSMContext):    
@@ -442,6 +453,8 @@ async def Complaint(message: types.Message, state: FSMContext):
 
     com = com1.replace("'", "''")
 
+    # В УЗБЕКСКОМ ЯЗЫКЕ МОГУТ ВСТРЕЧАТЬСЯ СИМВОЛЫ ' Я ПРЕДУСМОТРЕЛ ЧТОБЫ ОНИ СОХРАНЯЛИСЬ В БАЗУ И ЛОГИКА НЕ ЛОМАЛАСЬ
+    # НО  НЕ ПРЕДУСМОТРЕЛ "
 
     currentHour = datetime.now().hour
 
