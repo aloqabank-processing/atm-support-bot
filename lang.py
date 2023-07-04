@@ -33,3 +33,12 @@ uz = {
     '14': "Naqd pul berish bilan bog'liq muammolar",
     '15': "Bunday identifikatorga ega bankomat yo'q",
 }
+
+
+def get_language(call_data):
+    if call_data == "Ru":
+        return ru
+    elif call_data == "Uz":
+        return uz
+    else:
+        return None
