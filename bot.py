@@ -1,4 +1,7 @@
-import re, cv2, configparser, logging
+import re
+import cv2
+import configparser
+import logging
 
 from main import bot, dp
 from keyboards import share_keyboard, choose_language, add_comp, no_photo
@@ -36,10 +39,11 @@ logging.basicConfig(level=logging.INFO)
 
 ################################################################################
 
+
 @dp.message_handler(commands="start", state='*')
 async def start(message: Message, state: FSMContext):
     userid = message.from_user.id
-    
+
     if (user.admin_exists(message.from_user.id)):
         await bot.send_message(chat_id=message.chat.id, text="🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi")
 
@@ -47,7 +51,6 @@ async def start(message: Message, state: FSMContext):
 
         forId1 = await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
         id1 = forId1.message_id
-        print('22222222222222222222222222222222222222')
         await UserStates.notExist.set()
 
         @dp.callback_query_handler(text="Ru", state=UserStates.notExist)
@@ -76,8 +79,6 @@ async def start(message: Message, state: FSMContext):
 
     else:
         await state.update_data(userId=userid)
-        print(
-            '11111111111111111111111111111111111111111111111111111111111111111111111111111')
         await UserStates.exist.set()
         forId1 = await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
         id1 = forId1.message_id
@@ -207,12 +208,9 @@ async def get_photo(message: Message, state: FSMContext):
 
     imgQRcode = cv2.imread('qrcode.jpg')
     code = decode(imgQRcode)
-    print(code)
-    print(len(code))
 
     for barcode in decode(imgQRcode):
         data = barcode.data.decode('utf-8')
-        print(data)
 
     if len(code) != 0:
         size = 42
@@ -407,7 +405,6 @@ async def message_handler(call: CallbackQuery, state: FSMContext):
     @dp.callback_query_handler(text="noPhoto", state='*')
     async def message_handler(call: CallbackQuery, state: FSMContext):
         await state.update_data(existPhoto=0)
-        print('11')
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['3'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
@@ -447,12 +444,9 @@ async def get_photo(message: Message, state: FSMContext):
 
     imgQRcode = cv2.imread('qrcode.jpg')
     code = decode(imgQRcode)
-    print(code)
-    print(len(code))
 
     for barcode in decode(imgQRcode):
         data = barcode.data.decode('utf-8')
-        print(data)
 
     if len(code) != 0:
         size = 42
@@ -530,7 +524,6 @@ async def get_photo(message: Message, state: FSMContext):
 async def Complaint(message: Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
-    print('12')
     uinfo = user.info(message.chat.id)
 
     com1 = message.text
@@ -569,8 +562,6 @@ async def Complaint(message: Message, state: FSMContext):
         await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
         chatId = user.admin_by_state(str(region[0]))
-
-        print('chat id: ' + str(chatId))
 
         for i in chatId:
             await bot.send_message(chat_id=str(i[0]), text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
@@ -613,7 +604,6 @@ async def message_handler(call: CallbackQuery, state: FSMContext):
     @dp.callback_query_handler(text="noPhoto", state='*')
     async def message_handler(call: CallbackQuery, state: FSMContext):
         await state.update_data(existPhoto=0)
-        print('1111')
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['3'])
         tempCategoria = await state.get_data('categoria')
         categoria = tempCategoria['categoria']
@@ -653,12 +643,9 @@ async def get_photo(message: Message, state: FSMContext):
 
     imgQRcode = cv2.imread('qrcode.jpg')
     code = decode(imgQRcode)
-    print(code)
-    print(len(code))
 
     for barcode in decode(imgQRcode):
         data = barcode.data.decode('utf-8')
-        print(data)
 
     if len(code) != 0:
         size = 42
@@ -737,7 +724,6 @@ async def get_photo(message: Message, state: FSMContext):
 async def Complaint(message: Message, state: FSMContext):
     tempForLanguage = await state.get_data('language')
     language = tempForLanguage['language']
-    print('1122')
     uinfo = user.info(message.chat.id)
 
     com1 = message.text
@@ -776,9 +762,7 @@ async def Complaint(message: Message, state: FSMContext):
         await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
         chatId = user.admin_by_state(str(region[0]))
-
-        print('chat id: ' + str(chatId))
-
+        
         for i in chatId:
             await bot.send_message(chat_id=str(i[0]), text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
