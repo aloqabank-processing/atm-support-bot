@@ -15,7 +15,7 @@ from pyzbar.pyzbar import decode
 
 from db import Database
 from repository import User, Ticket, Atm
-from lang import ru, uz
+from lang import get_language
 from categories import cart, cashout, exchange
 
 # database
@@ -42,97 +42,54 @@ logging.basicConfig(level=logging.INFO)
 
 @dp.message_handler(commands="start", state='*')
 async def start(message: Message, state: FSMContext):
-    userid = message.from_user.id
+    user_id = message.from_user.id
+    chat_id = message.chat.id
 
-    if (user.admin_exists(message.from_user.id)):
-        await bot.send_message(chat_id=message.chat.id, text="🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi")
-
-    elif (not user.exists(message.from_user.id)):
-
-        forId1 = await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
-        id1 = forId1.message_id
-        await UserStates.notExist.set()
-
-        @dp.callback_query_handler(text="Ru", state=UserStates.notExist)
-        async def message_handler(call: CallbackQuery, state: FSMContext):
-            await call.answer('Done')
-            language = ru
-            await state.update_data(language=language)
-
-            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
-
-            m = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard)
-            id = m.message_id
-            await state.update_data(Id1=id)
-
-        @dp.callback_query_handler(text="Uz", state=UserStates.notExist)
-        async def message_handler(call: CallbackQuery, state: FSMContext):
-            await call.answer('Done')
-            language = uz
-            await state.update_data(language=language)
-
-            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
-
-            m = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard)
-            id = m.message_id
-            await state.update_data(Id1=id)
-
+    if user.admin_exists(user_id):
+        await bot.send_message(chat_id=chat_id, text="🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi")
+    elif not user.exists(user_id):
+        await UserStates.NotExist.set()
+        await bot.send_message(chat_id=chat_id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
     else:
-        await state.update_data(userId=userid)
-        await UserStates.exist.set()
-        forId1 = await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
-        id1 = forId1.message_id
+        await UserStates.Exist.set()
+        await state.update_data(userId=user_id)
+        await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
 
-        @dp.callback_query_handler(text="Ru", state=UserStates.exist)
-        async def message_handler(call: CallbackQuery, state: FSMContext):
-            await call.answer('Done')
+@dp.callback_query_handler(state=[UserStates.Exist, UserStates.NotExist])
+async def select_lang(call: CallbackQuery, state: FSMContext):
+    await call.answer('Done')
+    language = get_language(call.data)
 
-            language = ru
-            await state.update_data(language=language)
+    if language is not None:
+        await state.update_data(language=language)
+        await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
 
-            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
-
-            m = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
-            id = m.message_id
-            await state.update_data(button=id)
-
-        @dp.callback_query_handler(text="Uz", state=UserStates.exist)
-        async def message_handler(call: CallbackQuery, state: FSMContext):
-            await call.answer('Done')
-            language = uz
-            await state.update_data(language=language)
-
-            await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
-
-            m = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
-            id = m.message_id
-            await state.update_data(button=id)
-
+        if state == UserStates.Exist:
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
+            await state.update_data(button=msg.message_id)
+        elif state == UserStates.NotExist:
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard)
+            await state.update_data(lang_msg_id=msg.message_id)
 
 @dp.message_handler(content_types=ContentType.CONTACT, state='*')
 async def get_contact(message: Message, state: FSMContext):
-
     phone = message.contact.phone_number
     name = message.from_user.full_name
-    userid = message.from_user.id
+    user_id = message.from_user.id
 
-    await state.update_data(userId=userid)
+    await state.update_data(userId=user_id)
+    user.add(name, phone, user_id)
 
-    user.add(name, phone, userid)
+    temp_data = await state.get_data()
+    message_id = temp_data.get('lang_msg_id')
 
-    temp = await state.get_data('Id1')
-    messageId = temp['Id1']
+    await bot.delete_message(chat_id=user_id, message_id=message.message_id)
+    await bot.delete_message(chat_id=user_id, message_id=message_id)
 
-    await bot.delete_message(chat_id=userid, message_id=message.message_id)
-    await bot.delete_message(chat_id=userid, message_id=messageId)
+    language = temp_data.get('language')
+    msg = await bot.send_message(chat_id=message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
+    await state.update_data(button=msg.message_id)
 
-    tempForLanguage = await state.get_data('language')
-    language = tempForLanguage['language']
-
-    m = await bot.send_message(chat_id=message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
-
-    id = m.message_id
-    await state.update_data(button=id)
 
 ################################################################################
 
@@ -762,7 +719,7 @@ async def Complaint(message: Message, state: FSMContext):
         await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
         chatId = user.admin_by_state(str(region[0]))
-        
+
         for i in chatId:
             await bot.send_message(chat_id=str(i[0]), text='<b>' + str(uinfo[0]) + '</b> (' + uinfo[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[0]) + '\n' + 'Terminal ID: ' + str(TerminalID[0]) + '\n' + 'Location: ' + str(Location[0]) + '</b>' + '\n' + message.text)
 
