@@ -1,7 +1,8 @@
 import mysql.connector as mariadb
-from mysql.connector import Error
 import configparser
 import logging
+
+from mysql.connector import Error
 
 class Database:
     def __init__(self, config_file):
