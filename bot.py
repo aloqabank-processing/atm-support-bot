@@ -52,7 +52,7 @@ async def start(message: Message, state: FSMContext):
         await bot.send_message(chat_id=chat_id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
     else:
         await UserStates.Exist.set()
-        await state.update_data(userId=user_id)
+        await state.update_data(user_id=user_id)
         await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
 
 @dp.callback_query_handler(state=[UserStates.Exist, UserStates.NotExist])
@@ -77,7 +77,7 @@ async def get_contact(message: Message, state: FSMContext):
     name = message.from_user.full_name
     user_id = message.from_user.id
 
-    await state.update_data(userId=user_id)
+    await state.update_data(user_id=user_id)
     user.add(name, phone, user_id)
 
     temp_data = await state.get_data()
