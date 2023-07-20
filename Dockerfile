@@ -36,4 +36,4 @@ COPY . /app
 WORKDIR /app
 
 # Запускаем бот
-CMD ["python", "bot.py"]
+CMD ["python", "main.py"]
