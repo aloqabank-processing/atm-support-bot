@@ -14,13 +14,11 @@ class Ticket:
         query = "INSERT INTO ticket (userid, message, category, serial) VALUES (%s, %s, %s, %s)"
         values = (user_id, message, category, serial)
         self.db.execute_query(query, values)
-        self.db.commit()
 
     def change_status(self, num, status):
         query = "UPDATE ticket SET status = %s WHERE num = %s"
         values = (status, num)
         self.db.execute_query(query, values)
-        self.db.commit()
 
     def num_exists(self, num):
         query = "SELECT num FROM ticket WHERE num = %s"
@@ -28,16 +26,14 @@ class Ticket:
         return bool(result)
 
     def add_status(self, user_id, com, cats, serialNum):
-        query = "INSERT INTO ticket (userid, message, category, serial) VALUES (%s, %s, %s, %s)"
-        values = (user_id, com, cats, serialNum)
-        self.db.execute_query(query, values)
-        self.db.commit()
+        query = "INSERT INTO ticket (userid, message, category, serial) VALUES ('%d', '%s', '%s', '%s')" % (user_id, str(com), str(cats), str(serialNum))
+        print(query)
+        self.db.execute_query(query)
 
     def change_status(self, num, status):
         query = "UPDATE ticket SET status = %s WHERE num = %s"
         values = (status, num)
         self.db.execute_query(query, values)
-        self.db.commit()
 
 
 class User:
@@ -55,20 +51,19 @@ class User:
         return bool(result)
 
     def admin_exists(self, user_id):
-        query = "SELECT admin FROM admins WHERE admin = %s"
-        result = self.db.execute_query(query, (user_id,))
-        return bool(result)
+        query = "SELECT admin FROM admins WHERE admin = '%s'" % (str(user_id),)
+        result = self.db.execute_query(query)
+        print(result)
+        return bool(len(result))
     
     def admin_by_state(self, state):
-        query = "SELECT admin FROM admins WHERE State = '%s'"
-        result = self.db.execute_query(query, (state,))
-        return bool(result)
+        query = "SELECT admin FROM admins WHERE State = '%s'" % (state,)
+        result = self.db.execute_query(query)
+        return result
 
     def add(self, name, num, user_id):
-        query = "INSERT INTO user (Name, Phone, Id) VALUES (%s, %s, %s)"
-        values = (name, num, user_id)
-        self.db.execute_query(query, values)
-        self.db.commit()
+        query = "INSERT INTO user (Name, Phone, Id) VALUES ('%s', '%s', '%s')" % (name, num, str(user_id)) 
+        self.db.execute_query(query)
 
 
 class Atm:
