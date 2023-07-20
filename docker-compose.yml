@@ -3,7 +3,7 @@ services:
   bot:
     container_name: AloqaBankATMSupportBot
     build: .
-    restart: on-failure
+    restart: always
     environment:
       - TOKEN=6256030003:AAHt1Ui_MZFEkz7wngxLabxoeihRx4Fn-lg
       - DB_HOST=68.183.75.13
