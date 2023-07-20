@@ -30,6 +30,14 @@ def add_comp(text_for_add, text_for_card, text_for_cash_out):
     keyboard.add(*buttons)
     return keyboard
 
+def Continue(cont):
+    buttons = [
+        InlineKeyboardButton(text=cont, callback_data="cont"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
 
 def no_photo(text_for_add, text_for_enter):
     buttons = [
