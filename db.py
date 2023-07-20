@@ -50,20 +50,32 @@ class Database:
     def execute_query(self, query, values=None):
         try:
             self.connect()
+            print(type(self.connection))
             cursor = self.connection.cursor()
-
+            cursor = self.connection.cursor(buffered=True)
             if values:
                 cursor.execute(query, values)
             else:
                 cursor.execute(query)
-            self.connection.commit()
+                print(query)
+            
 
-            result = cursor.fetchall()
+            stringForResult = query[0] + query[1] + query[2] + query[3] + query[4] + query[5]
 
-            cursor.close()
-            self.connection.close()
+            if stringForResult == "SELECT":
+                print('select')
+                print(type(self.connection))
+                result = cursor.fetchall()
+                cursor.close()
+                self.connection.close()
 
-            return result
+                return result
+            else:
+                print(type(self.connection))
+                self.connection.commit()
+                cursor.close()
+                self.connection.close()
+                print('insert')
 
         except mariadb.Error as e:
             if isinstance(e, mariadb.errors.InterfaceError) and "Connection reset by peer" in str(e):
