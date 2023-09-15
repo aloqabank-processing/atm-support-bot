@@ -5,7 +5,7 @@ import configparser
 import logging
 
 from dispatcher import bot, dp
-from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue
+from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location
 from states import UserStates
 
 from aiogram.dispatcher import FSMContext
@@ -94,7 +94,7 @@ async def select_lang(call: CallbackQuery, state: FSMContext):
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
 
         if m == 'UserStates:Exist':
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
             await state.update_data(button=msg.message_id)
         elif m == 'UserStates:NotExist':
             msg = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard())
@@ -119,9 +119,34 @@ async def get_contact(message: Message, state: FSMContext):
 
     language = temp_data.get('language')
 
-    msg = await bot.send_message(chat_id=message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
+    msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
     await state.update_data(button=msg.message_id)
 
+
+@dp.callback_query_handler(text=["card_reissue", "ATM", "tickets"], state='*')
+async def choose_problem_async(call: CallbackQuery, state: FSMContext):
+    await call.answer('Done')
+    temp_data = await state.get_data()
+    language = temp_data.get('language')
+    await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    if call.data == "card_reissue":
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['26'])
+        await state.update_data(button=msg.message_id)
+        await UserStates.card_reissue.set()
+    elif call.data == "ATM":
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
+        await state.update_data(button=msg.message_id)
+    elif call.data == "tickets":
+        print("!")
+
+@dp.message_handler(content_types=ContentType.TEXT, state=UserStates.card_reissue)
+async def get_card_reissue(message: Message, state: FSMContext):
+    card_reissue_ticket = message.text
+    uinfo = user.info(message.chat.id)
+    uinfoCut = uinfo[0]
+    card_reissue_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \n Форма составленная клиентом: \n ------------------\n' + card_reissue_ticket + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
+    await bot.send_message(chat_id=message.chat.id, text=card_reissue_ticket)
+    await bot.send_message(chat_id=GROUP_ID, text=card_reissue_ticket)
 
 # # # # # # # # # # # # # # # # # #
 # ?
@@ -142,13 +167,37 @@ async def choose_device(call: CallbackQuery, state: FSMContext):
 
     await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
-    file2 = open('instruction.MP4', 'rb')
+    msg = await bot.send_message(chat_id=call.message.chat.id, text=language['21'], reply_markup=method_to_choose_ATM(language['22'], language['23'], language['24']))
+    await state.update_data(button=msg.message_id)
 
-    msg = await bot.send_animation( chat_id=call.message.chat.id, animation= file2, caption=language['8'], reply_markup=no_photo(language['9'], language['12']))
+@dp.callback_query_handler(text=["location", "QR", "back_from_choose_ATM"], state='*')
+async def choose_method(call: CallbackQuery, state: FSMContext):
+    await call.answer('Done')
 
-    await state.update_data(no_photo_button_message_id=msg.message_id)
-    await UserStates.Q6.set()
+    temp_data = await state.get_data()
+    language = temp_data.get('language')
+    await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    if call.data == "location":
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['25'], reply_markup=send_location(language['26']))
+        await state.update_data(button=msg.message_id)
+        await UserStates.Location.set()
+    elif call.data == "QR":
+        file2 = open('instruction.MP4', 'rb')
+        msg = await bot.send_animation( chat_id=call.message.chat.id, animation= file2, caption=language['8'], reply_markup=no_photo(language['9'], language['12']))
+        await state.update_data(no_photo_button_message_id=msg.message_id)
+        await UserStates.Q6.set()
+    elif call.data == "back_from_choose_ATM":
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+        await state.update_data(button=msg.message_id)
 
+@dp.message_handler(content_types=ContentType.LOCATION, state=UserStates.Location)
+async def get_location(message: Message, state: FSMContext):
+    lat = message.location.latitude
+    lon = message.location.longitude
+    await bot.send_message(chat_id=message.chat.id, text=str(lat))
+    await bot.send_message(chat_id=message.chat.id, text=str(lon))
+    print("!")
+    
 @dp.callback_query_handler(text=["enter", "noPhoto"], state='*')
 async def device_processing(call: CallbackQuery, state: FSMContext):
     
