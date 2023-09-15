@@ -18,3 +18,5 @@ class UserStates(StatesGroup):
     Q13 = State()
     Exist = State()
     NotExist = State()
+    Location = State()
+    card_reissue = State()
