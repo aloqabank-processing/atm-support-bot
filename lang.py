@@ -55,6 +55,8 @@ uz = {
     '24': "Orqaga",
     '25': "Quyidagi tugmani bosing joylashuvni yuborish uchun. Undan biz bankomatni aniqlaymiz",
     '26': "Joylashuvni yuboring",
+    # for example:
+    # 'key': 'value"
 }
 
 
