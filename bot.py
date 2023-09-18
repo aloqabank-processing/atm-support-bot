@@ -5,7 +5,7 @@ import configparser
 import logging
 
 from dispatcher import bot, dp
-from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location
+from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location, close_ticket_card_reissue
 from states import UserStates
 
 from aiogram.dispatcher import FSMContext
@@ -137,16 +137,51 @@ async def choose_problem_async(call: CallbackQuery, state: FSMContext):
         msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
         await state.update_data(button=msg.message_id)
     elif call.data == "tickets":
+        user_id = call.message.chat.id
+        result = ticket.select_ticket_card_reissue(user_id)
+        
+        msg = await bot.send_message(chat_id=call.message.chat.id, text='Список ваших заявок', reply_markup=ticket_list( result ))
+        await state.update_data(button=msg.message_id)
+
+        
         print("!")
+
+
 
 @dp.message_handler(content_types=ContentType.TEXT, state=UserStates.card_reissue)
 async def get_card_reissue(message: Message, state: FSMContext):
     card_reissue_ticket = message.text
     uinfo = user.info(message.chat.id)
     uinfoCut = uinfo[0]
-    card_reissue_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \n Форма составленная клиентом: \n ------------------\n' + card_reissue_ticket + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
-    await bot.send_message(chat_id=message.chat.id, text=card_reissue_ticket)
-    await bot.send_message(chat_id=GROUP_ID, text=card_reissue_ticket)
+
+    temp_data = await state.get_data()
+    language = temp_data.get('language')
+
+    user_id = message.from_user.id
+    ticket.add_ticket_card_reissue(user_id, card_reissue_ticket)
+    result = ticket.ticket_id_by_client_form(card_reissue_ticket)
+    ticket_id = result[0]
+    card_reissue_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + card_reissue_ticket + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
+    card_reissue_ticket = str(ticket_id[0]) + '\n' + card_reissue_ticket
+    await bot.send_message(chat_id=GROUP_ID, text=card_reissue_ticket, reply_markup=close_ticket_card_reissue())
+    
+    current_hour = datetime.now().hour
+    current_day = datetime.now().weekday()
+
+    if current_hour < 9 or current_hour >= 18 or current_day > 5:
+        await bot.send_message(message.chat.id, language['6'], reply_markup=Continue(language['16']))
+    else:
+        await bot.send_message(message.chat.id, language['4'], reply_markup=Continue(language['16']))
+
+@dp.callback_query_handler(text="close_ticket_card_reissue", state='*')
+async def close_ticket_card_reissue_func(call: CallbackQuery, state: FSMContext):
+    await call.answer('Done')
+    split_ticket_id = call.message.text
+    split_ticket_id = split_ticket_id.split("\n")[0]
+    ticket.delete_ticket_card_reissue(split_ticket_id)
+    await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
+
 
 # # # # # # # # # # # # # # # # # #
 # ?
@@ -226,7 +261,7 @@ async def device_processing(call: CallbackQuery, state: FSMContext):
 
     await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text = language['6'] )
 
-    msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
+    msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
     await state.update_data(button=msg.message_id)
 
 @dp.message_handler(state=UserStates.Q9)
