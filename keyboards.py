@@ -72,3 +72,19 @@ def method_to_choose_ATM(text_for_location, text_for_QR, text_for_back_from_choo
     keyboard = InlineKeyboardMarkup(row_width=1)
     keyboard.add(*buttons)
     return keyboard
+
+def close_ticket_card_reissue():
+    buttons = [
+        InlineKeyboardButton(text="ЗАКРЫТЬ ТИКЕТ", callback_data="close_ticket_card_reissue"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
+def ticket_list( tickets_from_current_user ):
+
+    keyboard = InlineKeyboardMarkup()
+
+    for ticket_num in tickets_from_current_user:
+    button = InlineKeyboardButton(text=ticket_num[0], callback_data=ticket_num[0])
+    keyboard.add(button)
