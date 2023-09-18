@@ -35,6 +35,25 @@ class Ticket:
         values = (status, num)
         self.db.execute_query(query, values)
 
+    def add_ticket_card_reissue(self, client_id, client_form):
+        query = "INSERT INTO ticket_card_reissue (client_id, client_form) VALUES ('%s', '%s')" % (str(client_id), str(client_form))
+        self.db.execute_query(query)
+
+    def ticket_id_by_client_form(self, client_form):
+        query = "SELECT ticket_id FROM ticket_card_reissue WHERE client_form = '%s'" % (str(client_form))
+        result = self.db.execute_query(query)
+        return result
+
+    def delete_ticket_card_reissue(self, ticket_id):
+        query = "DELETE FROM ticket_card_reissue WHERE ticket_id = %d" % (int(ticket_id))
+        self.db.execute_query(query)
+
+    def select_ticket_card_reissue(self, client_id):
+        query = "SELECT ticket_id FROM ticket_card_reissue WHERE client_id = '%s'" % (str(client_id))
+        result = self.db.execute_query(query)
+        return result
+
+
 
 class User:
     def __init__(self, db):
