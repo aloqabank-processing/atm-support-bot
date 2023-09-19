@@ -20,3 +20,6 @@ class UserStates(StatesGroup):
     NotExist = State()
     Location = State()
     card_reissue = State()
+    admin_group_status = State()
+    admin_group_answer = State()
+    wait = State()
