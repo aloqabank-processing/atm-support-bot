@@ -73,18 +73,34 @@ def method_to_choose_ATM(text_for_location, text_for_QR, text_for_back_from_choo
     keyboard.add(*buttons)
     return keyboard
 
-def close_ticket_card_reissue():
+def back_to_choose_ATM(text_for_back_from_choose_ATM):
     buttons = [
+        InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
+def options_ticket_card_reissue():
+    buttons = [
+        InlineKeyboardButton(text="ОСТАВИТЬ ОТВЕТ", callback_data="answer_ticket_card_reissue"),
+        InlineKeyboardButton(text="ИЗМЕНИТЬ СТАТУС", callback_data="status_ticket_card_reissue"),
         InlineKeyboardButton(text="ЗАКРЫТЬ ТИКЕТ", callback_data="close_ticket_card_reissue"),
     ]
     keyboard = InlineKeyboardMarkup(row_width=1)
     keyboard.add(*buttons)
     return keyboard
 
-def ticket_list( tickets_from_current_user ):
+def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user ):
 
-    keyboard = InlineKeyboardMarkup()
+    keyboard = InlineKeyboardMarkup(row_width=1)
 
-    for ticket_num in tickets_from_current_user:
-    button = InlineKeyboardButton(text=ticket_num[0], callback_data=ticket_num[0])
-    keyboard.add(button)
+    if len(tickets_from_current_user) == 0:
+        button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
+        keyboard.add(button)
+    else: 
+        for ticket_num in tickets_from_current_user:
+            button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
+            keyboard.add(button)
+
+    return keyboard
