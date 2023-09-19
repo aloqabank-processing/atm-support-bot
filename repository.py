@@ -52,7 +52,19 @@ class Ticket:
         query = "SELECT ticket_id FROM ticket_card_reissue WHERE client_id = '%s'" % (str(client_id))
         result = self.db.execute_query(query)
         return result
+    
+    def update_status_by_id(self, ticket_status, ticket_id):
+        query = "UPDATE ticket_card_reissue SET ticket_status = '%s' WHERE ticket_id = %d" % (str(ticket_status), int(ticket_id))
+        self.db.execute_query(query)
 
+    def update_answer_by_id(self, ticket_answer, ticket_id):
+        query = "UPDATE ticket_card_reissue SET ticket_answer = '%s' WHERE ticket_id = %d" % (str(ticket_answer), int(ticket_id))
+        self.db.execute_query(query)
+
+    def ticket_by_ticket_id(self, ticket_id):
+        query = "SELECT * FROM ticket_card_reissue WHERE ticket_id = %d" % (int(ticket_id))
+        result = self.db.execute_query(query)
+        return result
 
 
 class User:
