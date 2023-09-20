@@ -23,4 +23,7 @@ class UserStates(StatesGroup):
     admin_group_status = State()
     admin_group_answer = State()
     wait = State()
+    admin_group_ticket_status = State()
+    admin_group_ticket_answer = State()
+    
     
