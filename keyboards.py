@@ -63,6 +63,15 @@ def choose_problem(text_for_card_reissue, text_for_ATM, text_for_tickets):
     keyboard.add(*buttons)
     return keyboard
 
+def choose_problem_user(text_for_card_reissue, text_for_ATM, text_for_tickets):
+    buttons = [
+        InlineKeyboardButton(text=text_for_ATM, callback_data="ATM"),
+        InlineKeyboardButton(text=text_for_tickets, callback_data="tickets"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
 def method_to_choose_ATM(text_for_location, text_for_QR, text_for_back_from_choose_ATM):
     buttons = [
         InlineKeyboardButton(text=text_for_location, callback_data="location"),
@@ -91,15 +100,48 @@ def options_ticket_card_reissue():
     keyboard.add(*buttons)
     return keyboard
 
-def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user ):
+def options_atm_ticket():
+    buttons = [
+        InlineKeyboardButton(text="ОСТАВИТЬ ОТВЕТ", callback_data="answer_atm_ticket"),
+        InlineKeyboardButton(text="ИЗМЕНИТЬ СТАТУС", callback_data="status_atm_ticket"),
+        InlineKeyboardButton(text="ЗАКРЫТЬ ТИКЕТ", callback_data="close_atm_ticket"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
+def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_tickets_from_current_user ):
 
     keyboard = InlineKeyboardMarkup(row_width=1)
+    print(tickets_from_current_user)
 
-    if len(tickets_from_current_user) == 0:
+
+    if len(tickets_from_current_user) + len(atm_tickets_from_current_user) == 0:
         button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
         keyboard.add(button)
+        return keyboard
+    
+    ticket_num_counter = 0
+    for ticket_num in tickets_from_current_user:
+        if str(ticket_num[3]) == 'closed':
+            ticket_num_counter = ticket_num_counter + 1
+
+    atm_ticket_num_counter = 0
+    for ticket_num in atm_tickets_from_current_user:
+        if str(ticket_num[3]) == 'closed':
+            atm_ticket_num_counter = atm_ticket_num_counter + 1
+
+
+    if len(tickets_from_current_user) + len(atm_tickets_from_current_user) == ticket_num_counter + atm_ticket_num_counter:
+        button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
+        keyboard.add(button)
+    
     else: 
         for ticket_num in tickets_from_current_user:
+            button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
+            keyboard.add(button)
+
+        for ticket_num in atm_tickets_from_current_user:
             button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
             keyboard.add(button)
 
