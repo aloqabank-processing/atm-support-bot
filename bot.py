@@ -5,7 +5,7 @@ import configparser
 import logging
 
 from dispatcher import bot, dp
-from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location, options_ticket_card_reissue, ticket_list, back_to_choose_ATM
+from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location, options_ticket_card_reissue, ticket_list, back_to_choose_ATM, choose_problem_user, options_atm_ticket
 from states import UserStates
 
 from aiogram.dispatcher import FSMContext
@@ -20,6 +20,7 @@ from db import Database
 from repository import User, Ticket, Atm
 from lang import get_language
 from categories import cart, cashout, exchange
+from geo import Distance
 
 
 # database
@@ -28,6 +29,7 @@ db = Database(config_file)
 ticket = Ticket(db)
 user = User(db)
 atm = Atm(db)
+dis = Distance(db)
 
 # config.ini
 config = configparser.ConfigParser()
@@ -35,7 +37,7 @@ config.read(config_file)
 
 GROUP_ID = config.get('bot', 'group_id')
 TOKEN = config.get('bot', 'token')
-
+print(type(GROUP_ID))
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -69,7 +71,7 @@ async def start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     chat_id = message.chat.id
     print(user_id)
-
+    
     if user.admin_exists(user_id):
         await bot.send_message(chat_id=chat_id, text="🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi")
     elif not user.exists(user_id):
@@ -95,8 +97,12 @@ async def select_lang(call: CallbackQuery, state: FSMContext):
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
 
         if m == 'UserStates:Exist':
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
-            await state.update_data(button=msg.message_id)
+            if str(call.message.chat.id) == GROUP_ID:
+                msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+                await state.update_data(button=msg.message_id)
+            else:
+                msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
+                await state.update_data(button=msg.message_id)
         elif m == 'UserStates:NotExist':
             msg = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard())
             await state.update_data(lang_msg_id=msg.message_id)
@@ -120,8 +126,12 @@ async def get_contact(message: Message, state: FSMContext):
 
     language = temp_data.get('language')
 
-    msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
-    await state.update_data(button=msg.message_id)
+    if str(message.chat.id) == GROUP_ID:
+        msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+        await state.update_data(button=msg.message_id)
+    else:
+        msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
+        await state.update_data(button=msg.message_id)
 
 
 @dp.callback_query_handler(text=["card_reissue", "ATM", "tickets"], state='*')
@@ -140,12 +150,23 @@ async def choose_problem_async(call: CallbackQuery, state: FSMContext):
     elif call.data == "tickets":
         user_id = call.message.chat.id
         result = ticket.select_ticket_card_reissue(user_id)
+        print(result)
+        ticket_num_counter = 0
+        for ticket_num in result:
+            if str(ticket_num[3]) == 'closed':
+                ticket_num_counter = ticket_num_counter + 1
+
+        atm_ticket_num_counter = 0
+        result_atm_ticket = ticket.select_atm_ticket(user_id)
+        for atm_ticket_num in result_atm_ticket:
+            if str(atm_ticket_num[3]) == 'closed':
+                atm_ticket_num_counter = atm_ticket_num_counter + 1
         
-        if len(result) == 0:
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['31'], reply_markup=ticket_list( language['24'], result ))
+        if len(result) + len(result_atm_ticket) == ticket_num_counter + atm_ticket_num_counter:
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['31'], reply_markup=ticket_list( language['24'], result, result_atm_ticket ))
             await state.update_data(button=msg.message_id)
         else:
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['32'], reply_markup=ticket_list( language['24'], result ))
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['32'], reply_markup=ticket_list( language['24'], result, result_atm_ticket ))
             await state.update_data(button=msg.message_id)
 
 @dp.callback_query_handler(lambda query: re.match(r'^\d+$', query.data), state='*')
@@ -199,14 +220,21 @@ async def close_ticket_card_reissue_func(call: CallbackQuery, state: FSMContext)
     split_ticket_id = call.message.text
     split_ticket_id = split_ticket_id.split("\n")[0]
     await state.update_data(current_ticket=split_ticket_id)
+    print('NNNNNNNNNNOOOOOOOOOOTTTTTTTTTTTT AAAAAAAAAAAAAATTTTTTTTTTTTTMMMMMMMMMMMMMMM')
     if call.data == "close_ticket_card_reissue":
         ticket.delete_ticket_card_reissue(split_ticket_id)
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
     elif call.data == "status_ticket_card_reissue":
+        current_ticket_text = call.message.text
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await bot.send_message(chat_id=GROUP_ID, text="Введите статус по данной заявке:")
         await UserStates.admin_group_status.set()
     elif call.data == "answer_ticket_card_reissue":
+        current_ticket_text = call.message.text
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await bot.send_message(chat_id=GROUP_ID, text="Введите свой ответ для клиента по данной заявке:")
         await UserStates.admin_group_answer.set()
     
@@ -215,10 +243,12 @@ async def enter(message: Message, state: FSMContext):
     status_by_admin = message.text
     temp_data = await state.get_data()
     current_ticket = temp_data.get('current_ticket')
+    current_ticket_text = temp_data.get('current_ticket_text')
 
     ticket.update_status_by_id(status_by_admin, current_ticket)
 
     await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
+    await bot.send_message(chat_id=GROUP_ID, text=current_ticket_text, reply_markup=options_ticket_card_reissue() )
     await UserStates.wait.set()
     
 @dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_answer)
@@ -226,10 +256,12 @@ async def enter(message: Message, state: FSMContext):
     answer_by_admin = message.text
     temp_data = await state.get_data()
     current_ticket = temp_data.get('current_ticket')
+    current_ticket_text = temp_data.get('current_ticket_text')
 
     ticket.update_answer_by_id(answer_by_admin, current_ticket)
 
     await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
+    await bot.send_message(chat_id=GROUP_ID, text=current_ticket_text, reply_markup=options_ticket_card_reissue() )
     await UserStates.wait.set()
 
 # # # # # # # # # # # # # # # # # #
@@ -271,16 +303,32 @@ async def choose_method(call: CallbackQuery, state: FSMContext):
         await state.update_data(no_photo_button_message_id=msg.message_id)
         await UserStates.Q6.set()
     elif call.data == "back_from_choose_ATM":
-        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
-        await state.update_data(button=msg.message_id)
+
+        if str(call.message.chat.id) == GROUP_ID:
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+            await state.update_data(button=msg.message_id)
+        else:
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
+            await state.update_data(button=msg.message_id)
+
 
 @dp.message_handler(content_types=ContentType.LOCATION, state=UserStates.Location)
 async def get_location(message: Message, state: FSMContext):
-    lat = message.location.latitude
-    lon = message.location.longitude
-    await bot.send_message(chat_id=message.chat.id, text=str(lat))
-    await bot.send_message(chat_id=message.chat.id, text=str(lon))
-    print("!")
+    latitude = message.location.latitude
+    longitude = message.location.longitude
+    serial_num = dis.check_distance(longitude, latitude)
+    unique_id = atm.unique_id_by_terminal(serial_num)[0]
+
+    temp_data = await state.get_data()
+    language = temp_data.get('language')
+
+    if serial_num != '0':
+        await state.update_data(exist_photo=1, serial_num=unique_id[0])
+        await bot.send_message(chat_id=message.chat.id, text=language['3'])
+        await UserStates.Q4.set()
+    else:
+        msg = await bot.send_message(chat_id=message.chat.id, text=language['33'], reply_markup=method_to_choose_ATM(language['22'], language['23'], language['24']))
+        await state.update_data(button=msg.message_id)
     
 @dp.callback_query_handler(text=["enter", "noPhoto"], state='*')
 async def device_processing(call: CallbackQuery, state: FSMContext):
@@ -310,8 +358,12 @@ async def device_processing(call: CallbackQuery, state: FSMContext):
 
     await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text = language['6'] )
 
-    msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
-    await state.update_data(button=msg.message_id)
+    if str(call.message.chat.id) == GROUP_ID:
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+        await state.update_data(button=msg.message_id)
+    else:
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
+        await state.update_data(button=msg.message_id)
 
 @dp.message_handler(state=UserStates.Q9)
 async def enter(message: Message, state: FSMContext):
@@ -389,26 +441,6 @@ async def complaint(message: Message, state: FSMContext):
 
     user_id = message.from_user.id
 
-    if exist_photo == 0:
-        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + message.text)
-    else:
-        atm_data = atm.read(str(serial_num))
-        print(atm_data)
-        region = atm_data[0]
-        TerminalID = atm_data[0]
-        Location = atm_data[0]
-
-        print(GROUP_ID)
-        
-
-        await bot.send_message(chat_id=GROUP_ID, text='<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[1]) + '\n' + 'Terminal ID: ' + str(TerminalID[2]) + '\n' + 'Location: ' + str(Location[5]) + '</b>' + '\n' + message.text)
-        print(str(region[1]))
-        chat_id = user.admin_by_state(str(region[1]))
-        chat_idCut = chat_id[0]
-        print(chat_idCut)
-        for i in chat_idCut:
-            print(i)
-            await bot.send_message(chat_id=str(i), text='<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[1]) + '\n' + 'Terminal ID: ' + str(TerminalID[2]) + '\n' + 'Location: ' + str(Location[5]) + '</b>' + '\n' + message.text)
 
     if len(cats) == 0:
         cats.append('other')
@@ -423,6 +455,84 @@ async def complaint(message: Message, state: FSMContext):
         ticket.add_status(user_id, com, 'Банкомат захватил карту', '-' if exist_photo == 0 else serial_num)
     elif categoria == 3: 
         ticket.add_status(user_id, com, 'Проблемы с выдачей наличных', '-' if exist_photo == 0 else serial_num)
+
+
+    last_num = ticket.get_last_num()
+
+    if exist_photo == 0:
+        await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + message.text, reply_markup=options_atm_ticket())
+    else:
+        atm_data = atm.read(str(serial_num))
+        print(atm_data)
+        region = atm_data[0]
+        TerminalID = atm_data[0]
+        Location = atm_data[0]
+
+        print(GROUP_ID)
+        
+
+        await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[1]) + '\n' + 'Terminal ID: ' + str(TerminalID[2]) + '\n' + 'Location: ' + str(Location[5]) + '</b>' + '\n' + message.text, reply_markup=options_atm_ticket())
+        print(str(region[1]))
+        chat_id = user.admin_by_state(str(region[1]))
+        chat_idCut = chat_id[0]
+        print(chat_idCut)
+        for i in chat_idCut:
+            print(i)
+            # await bot.send_message(chat_id=str(i), text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[1]) + '\n' + 'Terminal ID: ' + str(TerminalID[2]) + '\n' + 'Location: ' + str(Location[5]) + '</b>' + '\n' + message.text, reply_markup=options_atm_ticket())
+
+    
+
+@dp.callback_query_handler(text=["close_atm_ticket", "answer_atm_ticket", "status_atm_ticket"], state='*')
+async def close_ticket_card_reissue_func(call: CallbackQuery, state: FSMContext):
+    await call.answer('Done')
+    split_ticket_id = call.message.text
+    split_ticket_id = split_ticket_id.split("\n")[0]
+    await state.update_data(current_ticket=split_ticket_id)
+
+    print('AAAAAAAAAAAAAAAAATTTTTTTTTTTTTMMMMMMMMMMMMMM')
+    if call.data == "close_atm_ticket":
+        ticket.delete_atm_ticket(split_ticket_id)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
+    elif call.data == "status_atm_ticket":
+        current_ticket_text = call.message.text
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Введите статус по данной заявке:")
+        await UserStates.admin_group_ticket_status.set()
+    elif call.data == "answer_atm_ticket":
+        current_ticket_text = call.message.text
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Введите свой ответ для клиента по данной заявке:")
+        await UserStates.admin_group_ticket_answer.set()
+    
+@dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_ticket_status)
+async def enter(message: Message, state: FSMContext):
+    status_by_admin = message.text
+    temp_data = await state.get_data()
+    current_ticket = temp_data.get('current_ticket')
+    current_ticket_text = temp_data.get('current_ticket_text')
+
+    ticket.update_ticket_status_by_id(status_by_admin, current_ticket)
+
+    await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
+    await bot.send_message(chat_id=GROUP_ID, text=current_ticket_text, reply_markup=options_atm_ticket() )
+    await UserStates.wait.set()
+    
+@dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_ticket_answer)
+async def enter(message: Message, state: FSMContext):
+    answer_by_admin = message.text
+    temp_data = await state.get_data()
+    current_ticket = temp_data.get('current_ticket')
+    current_ticket_text = temp_data.get('current_ticket_text')
+
+    ticket.update_ticket_answer_by_id(answer_by_admin, current_ticket)
+
+    await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
+    await bot.send_message(chat_id=GROUP_ID, text=current_ticket_text, reply_markup=options_atm_ticket() )
+    await UserStates.wait.set()
+
 # END
 
 @dp.message_handler(content_types=ContentType.ANY, state='*')
