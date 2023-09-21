@@ -83,6 +83,11 @@ class Ticket:
         result = self.db.execute_query(query)
         return result
     
+    def atm_ticket_by_ticket_id(self, ticket_id):
+        query = "SELECT * FROM ticket WHERE ticket_id = %d" % (int(ticket_id))
+        result = self.db.execute_query(query)
+        return result
+    
     def get_last_num(self):
         query = "SELECT ticket_id FROM ticket"
         result = self.db.execute_query(query)
