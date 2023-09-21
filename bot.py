@@ -36,6 +36,7 @@ config = configparser.ConfigParser()
 config.read(config_file)
 
 GROUP_ID = config.get('bot', 'group_id')
+FILIAL = config.get('bot', 'filial')
 TOKEN = config.get('bot', 'token')
 print(type(GROUP_ID))
 # Configure logging
@@ -97,7 +98,7 @@ async def select_lang(call: CallbackQuery, state: FSMContext):
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
 
         if m == 'UserStates:Exist':
-            if str(call.message.chat.id) == GROUP_ID:
+            if str(call.message.chat.id) == FILIAL:
                 msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
                 await state.update_data(button=msg.message_id)
             else:
@@ -159,7 +160,7 @@ async def choose_problem_async(call: CallbackQuery, state: FSMContext):
         atm_ticket_num_counter = 0
         result_atm_ticket = ticket.select_atm_ticket(user_id)
         for atm_ticket_num in result_atm_ticket:
-            if str(atm_ticket_num[3]) == 'closed':
+            if str(atm_ticket_num[5]) == 'closed':
                 atm_ticket_num_counter = atm_ticket_num_counter + 1
         
         if len(result) + len(result_atm_ticket) == ticket_num_counter + atm_ticket_num_counter:
@@ -180,25 +181,35 @@ async def process_callback_number(call: CallbackQuery, state: FSMContext):
     language = temp_data.get('language')
 
     result = ticket.ticket_by_ticket_id(number)
-    print(result)
-    result_of_selection = result[0]
+    atm_result = ticket.atm_ticket_by_ticket_id(number)
 
-    client_ticket_form = language['28'] + str(number) + "\n" + result_of_selection[2] + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
+    if len(result) != 0:
+        result_of_selection = result[0]
 
-    msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
-    await state.update_data(button=msg.message_id)
+        client_ticket_form = language['28'] + str(number) + "\n" + result_of_selection[2] + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
+
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
+        await state.update_data(button=msg.message_id)
+
+    if len(atm_result) != 0:
+        result_of_selection = atm_result[0]
+
+        client_ticket_form = language['28'] + str(number) + "\n" + result_of_selection[2] + "\n" + language['29'] + result_of_selection[5] + "\n" + language['30'] + result_of_selection[6]
+
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
+        await state.update_data(button=msg.message_id)
  
 
 @dp.message_handler(content_types=ContentType.TEXT, state=UserStates.card_reissue)
 async def get_card_reissue(message: Message, state: FSMContext):
     card_reissue_ticket = message.text
-    uinfo = user.info(message.chat.id)
+    uinfo = user.info(message.from_user.id)
     uinfoCut = uinfo[0]
 
     temp_data = await state.get_data()
     language = temp_data.get('language')
 
-    user_id = message.from_user.id
+    user_id = message.chat.id
     ticket.add_ticket_card_reissue(user_id, card_reissue_ticket)
     result = ticket.ticket_id_by_client_form(card_reissue_ticket)
     ticket_id = result[0]
@@ -304,7 +315,7 @@ async def choose_method(call: CallbackQuery, state: FSMContext):
         await UserStates.Q6.set()
     elif call.data == "back_from_choose_ATM":
 
-        if str(call.message.chat.id) == GROUP_ID:
+        if str(call.message.chat.id) == FILIAL:
             msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
             await state.update_data(button=msg.message_id)
         else:
@@ -356,9 +367,15 @@ async def device_processing(call: CallbackQuery, state: FSMContext):
     temp_data = await state.get_data()
     language = temp_data.get('language')
 
-    await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text = language['6'] )
+    current_hour = datetime.now().hour
+    current_day = datetime.now().weekday()
 
-    if str(call.message.chat.id) == GROUP_ID:
+    if current_hour < 9 or current_hour >= 18 or current_day > 5:
+        await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text = language['6'] )
+    else:
+        await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text = language['4'] )
+
+    if str(call.message.chat.id) == FILIAL:
         msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
         await state.update_data(button=msg.message_id)
     else:
@@ -426,10 +443,12 @@ async def complaint(message: Message, state: FSMContext):
     current_hour = datetime.now().hour
     current_day = datetime.now().weekday()
 
+    last_num = ticket.get_last_num()
+
     if current_hour < 9 or current_hour >= 18 or current_day > 5:
-        await bot.send_message(message.chat.id, language['6'], reply_markup=Continue(language['16']))
+        await bot.send_message(message.chat.id, last_num + '\n' + language['6'], reply_markup=Continue(language['16']))
     else:
-        await bot.send_message(message.chat.id, language['4'], reply_markup=Continue(language['16']))
+        await bot.send_message(message.chat.id, last_num + '\n' + language['4'], reply_markup=Continue(language['16']))
 
     cats = []
     categories = [cart, cashout, exchange]
@@ -457,7 +476,7 @@ async def complaint(message: Message, state: FSMContext):
         ticket.add_status(user_id, com, 'Проблемы с выдачей наличных', '-' if exist_photo == 0 else serial_num)
 
 
-    last_num = ticket.get_last_num()
+    
 
     if exist_photo == 0:
         await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + message.text, reply_markup=options_atm_ticket())
