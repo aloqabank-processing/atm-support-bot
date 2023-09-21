@@ -56,7 +56,6 @@ def no_photo(text_for_add, text_for_enter):
 def choose_problem(text_for_card_reissue, text_for_ATM, text_for_tickets):
     buttons = [
         InlineKeyboardButton(text=text_for_card_reissue, callback_data="card_reissue"),
-        InlineKeyboardButton(text=text_for_ATM, callback_data="ATM"),
         InlineKeyboardButton(text=text_for_tickets, callback_data="tickets"),
     ]
     keyboard = InlineKeyboardMarkup(row_width=1)
@@ -113,7 +112,6 @@ def options_atm_ticket():
 def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_tickets_from_current_user ):
 
     keyboard = InlineKeyboardMarkup(row_width=1)
-    print(tickets_from_current_user)
 
 
     if len(tickets_from_current_user) + len(atm_tickets_from_current_user) == 0:
@@ -127,8 +125,9 @@ def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_t
             ticket_num_counter = ticket_num_counter + 1
 
     atm_ticket_num_counter = 0
+
     for ticket_num in atm_tickets_from_current_user:
-        if str(ticket_num[3]) == 'closed':
+        if str(ticket_num[5]) == 'closed':
             atm_ticket_num_counter = atm_ticket_num_counter + 1
 
 
@@ -138,11 +137,15 @@ def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_t
     
     else: 
         for ticket_num in tickets_from_current_user:
-            button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
-            keyboard.add(button)
+            if str(ticket_num[3]) != 'closed':
+                button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
+                keyboard.add(button)
 
         for ticket_num in atm_tickets_from_current_user:
-            button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
-            keyboard.add(button)
+            
+            if str(ticket_num[5]) != 'closed':
+                print(ticket_num)
+                button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
+                keyboard.add(button)
 
     return keyboard
