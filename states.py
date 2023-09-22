@@ -25,5 +25,8 @@ class UserStates(StatesGroup):
     wait = State()
     admin_group_ticket_status = State()
     admin_group_ticket_answer = State()
+    cancellation_the_transaction_state = State()
+    admin_group_status_cancellation_the_transaction = State()
+    admin_group_answer_cancellation_the_transaction = State()
     
     
