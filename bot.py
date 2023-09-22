@@ -5,7 +5,7 @@ import configparser
 import logging
 
 from dispatcher import bot, dp
-from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location, options_ticket_card_reissue, ticket_list, back_to_choose_ATM, choose_problem_user, options_atm_ticket
+from keyboards import share_keyboard, choose_language, add_comp, no_photo, Continue, choose_problem, method_to_choose_ATM, send_location, options_ticket_card_reissue, ticket_list, back_to_choose_ATM, choose_problem_user, options_atm_ticket, options_ticket_cancellation_the_transaction_state
 from states import UserStates
 
 from aiogram.dispatcher import FSMContext
@@ -99,7 +99,7 @@ async def select_lang(call: CallbackQuery, state: FSMContext):
 
         if m == 'UserStates:Exist':
             if str(call.message.chat.id) == FILIAL:
-                msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+                msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
                 await state.update_data(button=msg.message_id)
             else:
                 msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
@@ -128,14 +128,14 @@ async def get_contact(message: Message, state: FSMContext):
     language = temp_data.get('language')
 
     if str(message.chat.id) == GROUP_ID:
-        msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+        msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
         await state.update_data(button=msg.message_id)
     else:
         msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
         await state.update_data(button=msg.message_id)
 
 
-@dp.callback_query_handler(text=["card_reissue", "ATM", "tickets"], state='*')
+@dp.callback_query_handler(text=["card_reissue", "ATM", "tickets", "cancellation_the_transaction"], state='*')
 async def choose_problem_async(call: CallbackQuery, state: FSMContext):
     await call.answer('Done')
     temp_data = await state.get_data()
@@ -148,6 +148,10 @@ async def choose_problem_async(call: CallbackQuery, state: FSMContext):
     elif call.data == "ATM":
         msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
         await state.update_data(button=msg.message_id)
+    elif call.data == "cancellation_the_transaction":
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['36'])
+        await state.update_data(button=msg.message_id)
+        await UserStates.cancellation_the_transaction_state.set()
     elif call.data == "tickets":
         user_id = call.message.chat.id
         result = ticket.select_ticket_card_reissue(user_id)
@@ -185,11 +189,16 @@ async def process_callback_number(call: CallbackQuery, state: FSMContext):
 
     if len(result) != 0:
         result_of_selection = result[0]
+        if str(result_of_selection[5]) == 'c':
+            client_ticket_form = language['28'] + str(number) + "\n" + result_of_selection[2] + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
 
-        client_ticket_form = language['28'] + str(number) + "\n" + result_of_selection[2] + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
+            await state.update_data(button=msg.message_id)
+        else:
+            client_ticket_form = language['28'] + str(number) + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
 
-        msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
-        await state.update_data(button=msg.message_id)
+            await bot.send_document(chat_id=call.message.chat.id, document=str(result_of_selection[2]), caption=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
+
 
     if len(atm_result) != 0:
         result_of_selection = atm_result[0]
@@ -199,6 +208,74 @@ async def process_callback_number(call: CallbackQuery, state: FSMContext):
         msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=back_to_choose_ATM(language['24']))
         await state.update_data(button=msg.message_id)
  
+@dp.message_handler(content_types=ContentType.DOCUMENT, state=UserStates.cancellation_the_transaction_state)
+async def cancellation_the_transaction_func(message: Message, state: FSMContext):
+    file_info = message.document.file_id
+    user_id = message.chat.id
+    uinfo = user.info(message.from_user.id)
+    uinfoCut = uinfo[0]
+    ticket.add_ticket_card_reissue(user_id, file_info, 't')
+    result = ticket.ticket_id_by_client_form(file_info)
+    ticket_id = result[0]
+    cancellation_the_transaction_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \nНомер телефона: <b>(' + uinfoCut[1] + ") </b>"
+    cancellation_the_transaction_ticket = str(ticket_id[0]) + '\n' + cancellation_the_transaction_ticket
+    await bot.send_document(chat_id=GROUP_ID, document=file_info, caption=cancellation_the_transaction_ticket, reply_markup=options_ticket_cancellation_the_transaction_state() )
+
+@dp.callback_query_handler(text=["close_ticket_cancellation_the_transaction_state", "answer_ticket_cancellation_the_transaction_state", "status_ticket_cancellation_the_transaction_state"], state='*')
+async def close_ticket_card_reissue_func(call: CallbackQuery, state: FSMContext):
+    await call.answer('Done')
+    split_ticket_id = call.message.caption
+    split_ticket_id = split_ticket_id.split("\n")[0]
+    await state.update_data(current_ticket=split_ticket_id)
+    print('NNNNNNNNNNOOOOOOOOOOTTTTTTTTTTTT AAAAAAAAAAAAAATTTTTTTTTTTTTMMMMMMMMMMMMMMM 2222222222222222')
+    if call.data == "close_ticket_cancellation_the_transaction_state":
+        ticket.delete_ticket_card_reissue(split_ticket_id)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
+    elif call.data == "status_ticket_cancellation_the_transaction_state":
+        current_ticket_text = call.message.caption
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Введите статус по данной заявке:")
+        await UserStates.admin_group_status_cancellation_the_transaction.set()
+    elif call.data == "answer_ticket_cancellation_the_transaction_state":
+        current_ticket_text = call.message.caption
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Введите свой ответ для клиента по данной заявке:")
+        await UserStates.admin_group_answer_cancellation_the_transaction.set()
+
+@dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_status_cancellation_the_transaction)
+async def enter(message: Message, state: FSMContext):
+    status_by_admin = message.text
+    temp_data = await state.get_data()
+    current_ticket = temp_data.get('current_ticket')
+    current_ticket_text = temp_data.get('current_ticket_text')
+
+    result = ticket.file_id_by_ticket_id(current_ticket)[0]
+    ticket_file_id = result[0]
+
+    ticket.update_status_by_id(status_by_admin, current_ticket)
+
+    await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
+    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=options_ticket_cancellation_the_transaction_state() )
+    await UserStates.wait.set()
+    
+@dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_answer_cancellation_the_transaction)
+async def enter(message: Message, state: FSMContext):
+    answer_by_admin = message.text
+    temp_data = await state.get_data()
+    current_ticket = temp_data.get('current_ticket')
+    current_ticket_text = temp_data.get('current_ticket_text')
+
+    result = ticket.file_id_by_ticket_id(current_ticket)[0]
+    ticket_file_id = result[0]
+
+    ticket.update_answer_by_id(answer_by_admin, current_ticket)
+
+    await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
+    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=options_ticket_cancellation_the_transaction_state() )
+    await UserStates.wait.set()
 
 @dp.message_handler(content_types=ContentType.TEXT, state=UserStates.card_reissue)
 async def get_card_reissue(message: Message, state: FSMContext):
@@ -210,7 +287,7 @@ async def get_card_reissue(message: Message, state: FSMContext):
     language = temp_data.get('language')
 
     user_id = message.chat.id
-    ticket.add_ticket_card_reissue(user_id, card_reissue_ticket)
+    ticket.add_ticket_card_reissue(user_id, card_reissue_ticket, 'c')
     result = ticket.ticket_id_by_client_form(card_reissue_ticket)
     ticket_id = result[0]
     card_reissue_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + card_reissue_ticket + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
@@ -316,7 +393,7 @@ async def choose_method(call: CallbackQuery, state: FSMContext):
     elif call.data == "back_from_choose_ATM":
 
         if str(call.message.chat.id) == FILIAL:
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
             await state.update_data(button=msg.message_id)
         else:
             msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
@@ -376,7 +453,7 @@ async def device_processing(call: CallbackQuery, state: FSMContext):
         await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text = language['4'] )
 
     if str(call.message.chat.id) == FILIAL:
-        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19']))
+        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
         await state.update_data(button=msg.message_id)
     else:
         msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
