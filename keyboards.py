@@ -53,8 +53,9 @@ def no_photo(text_for_add, text_for_enter):
     keyboard.add(*buttons)
     return keyboard
 
-def choose_problem(text_for_card_reissue, text_for_ATM, text_for_tickets):
+def choose_problem(text_for_card_reissue, text_for_ATM, text_for_tickets, text_for_cancellation_the_transaction ):
     buttons = [
+        InlineKeyboardButton(text=text_for_cancellation_the_transaction, callback_data="cancellation_the_transaction"),
         InlineKeyboardButton(text=text_for_card_reissue, callback_data="card_reissue"),
         InlineKeyboardButton(text=text_for_tickets, callback_data="tickets"),
     ]
@@ -99,6 +100,16 @@ def options_ticket_card_reissue():
     keyboard.add(*buttons)
     return keyboard
 
+def options_ticket_cancellation_the_transaction_state():
+    buttons = [
+        InlineKeyboardButton(text="ОСТАВИТЬ ОТВЕТ", callback_data="answer_ticket_cancellation_the_transaction_state"),
+        InlineKeyboardButton(text="ИЗМЕНИТЬ СТАТУС", callback_data="status_ticket_cancellation_the_transaction_state"),
+        InlineKeyboardButton(text="ЗАКРЫТЬ ТИКЕТ", callback_data="close_ticket_cancellation_the_transaction_state"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
 def options_atm_ticket():
     buttons = [
         InlineKeyboardButton(text="ОСТАВИТЬ ОТВЕТ", callback_data="answer_atm_ticket"),
@@ -138,14 +149,14 @@ def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_t
     else: 
         for ticket_num in tickets_from_current_user:
             if str(ticket_num[3]) != 'closed':
-                button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
+                button = InlineKeyboardButton(text='Перевод карты №' + str(ticket_num[0]), callback_data=int(ticket_num[0]))
                 keyboard.add(button)
 
         for ticket_num in atm_tickets_from_current_user:
             
             if str(ticket_num[5]) != 'closed':
                 print(ticket_num)
-                button = InlineKeyboardButton(text=str(ticket_num[0]), callback_data=int(ticket_num[0]))
+                button = InlineKeyboardButton(text='ATM №' + str(ticket_num[0]), callback_data=int(ticket_num[0]))
                 keyboard.add(button)
 
     return keyboard
