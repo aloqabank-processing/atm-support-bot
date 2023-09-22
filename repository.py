@@ -35,10 +35,15 @@ class Ticket:
         values = (status, num)
         self.db.execute_query(query, values)
 
-    def add_ticket_card_reissue(self, client_id, client_form):
-        query = "INSERT INTO ticket_card_reissue (client_id, client_form, ticket_status, ticket_answer) VALUES ('%s', '%s', 'Заявка отправлена', 'Ответа нет')" % (str(client_id), str(client_form))
+    def add_ticket_card_reissue(self, client_id, client_form, ticket_type):
+        query = "INSERT INTO ticket_card_reissue (client_id, client_form, ticket_status, ticket_answer, ticket_type) VALUES ('%s', '%s', 'Заявка отправлена', 'Ответа нет', '%s')" % (str(client_id), str(client_form), str(ticket_type))
         self.db.execute_query(query)
 
+    def file_id_by_ticket_id(self, ticket_id):
+        query = "SELECT client_form FROM ticket_card_reissue WHERE ticket_id = %d" % (int(ticket_id))
+        result = self.db.execute_query(query)
+        return result
+    
     def ticket_id_by_client_form(self, client_form):
         query = "SELECT ticket_id FROM ticket_card_reissue WHERE client_form = '%s'" % (str(client_form))
         result = self.db.execute_query(query)
