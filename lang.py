@@ -32,6 +32,9 @@ ru = {
     '31': "Заявок нет",
     '32': "Список ваших заявок",
     '33': "Вблизи с вами не был найден ни один из наших банкоматов. Попробуйте другой метод определения банкомата",
+    '34': "Отмена транзакции",
+    '35': "Ремонт банкомата",
+    '36': "Отправте файл для отмены транзакции",
 
 }
 
@@ -69,6 +72,8 @@ uz = {
     '31': "Arizalar yo'q",
     '32': "Sizning arizalaringiz ro'yxati",
     '33': "Sizning yoningizda bizning bankomatlarimizdan hech biri topilmadi. Bankomatni aniqlashning boshqa usulini sinab ko'ring",
+    '34': "Bitimni bekor qilish",
+    '35': "Bankomatni ta'mirlash",
     # for example:
     # 'key': 'value"
 }
