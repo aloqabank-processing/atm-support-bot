@@ -28,5 +28,6 @@ class UserStates(StatesGroup):
     cancellation_the_transaction_state = State()
     admin_group_status_cancellation_the_transaction = State()
     admin_group_answer_cancellation_the_transaction = State()
+    cancellation_the_transaction_state_uzcard = State()
     
     
