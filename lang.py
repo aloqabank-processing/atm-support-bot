@@ -25,7 +25,7 @@ ru = {
     '24': "Назад",
     '25': "Нажмите на кнопку ниже чтобы отправить локацию. По ней мы определим банкомат",
     '26': "Отправить локацию",
-    '27': "Напишите \nФИО:\nНомер карты: (пример - 986019******0011) \nМФО от куда: \nМФО куда:",
+    '27': "Напишите \nФамилия Имя владельца карты:\nНомер карты: (пример - 986019******0011) \nМФО от куда: \nМФО куда:",
     '28': "Заявка №",
     '29': "Статус: ",
     '30': "Ответ от администратора: ",
@@ -35,6 +35,8 @@ ru = {
     '34': "Отмена транзакции",
     '35': "Ремонт банкомата",
     '36': "Отправте файл для отмены транзакции",
+    '37': "Выберите тип платежной системы",
+    '38': "Отправьте данные в виде\nНомер карты:\nСумма:\nДата:\nMerchant ID:\nTerminal ID:"
 
 }
 
@@ -65,7 +67,7 @@ uz = {
     '24': "Orqaga",
     '25': "Quyidagi tugmani bosing joylashuvni yuborish uchun. Undan biz bankomatni aniqlaymiz",
     '26': "Joylashuvni yuboring",
-    '27': "Yozing \nTo'liq ism: \nKarta raqami: (misol - 986019******0011) \nMFO kimdan: \nMFO qayerda:",
+    '27': "Yozing \nFamiliya karta egasining ismi: \nKarta raqami: (misol - 986019******0011) \nMFO kimdan: \nMFO qayerda:",
     '28': "Ariza raqami",
     '29': "Holat:",
     '30': "Administratordan javob: ",
@@ -74,6 +76,9 @@ uz = {
     '33': "Sizning yoningizda bizning bankomatlarimizdan hech biri topilmadi. Bankomatni aniqlashning boshqa usulini sinab ko'ring",
     '34': "Bitimni bekor qilish",
     '35': "Bankomatni ta'mirlash",
+    '36': "Tranzaksiyani bekor qilish uchun fayl yuboring",
+    '37': "To'lov tizimining turini tanlang",
+    '38': "Ma'lumotlarni quyidagicha yuboring\nКарта раками:\nСумма:\nСана:\nMerchant ID:\nTerminal ID:"
     # for example:
     # 'key': 'value"
 }
