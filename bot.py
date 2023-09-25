@@ -21,6 +21,9 @@ from repository import User, Ticket, Atm
 from lang import get_language
 from categories import cart, cashout, exchange
 from geo import Distance
+import services.language_select as language_select
+import services.main_menu as main_menu
+import services.methods.cancellation_the_transaction as cancellation_the_transaction
 
 
 # database
@@ -71,123 +74,29 @@ async def handle_category_callback(call_data: str, state: FSMContext, category: 
 async def start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    print(user_id)
-    
-    if user.admin_exists(user_id):
-        await bot.send_message(chat_id=chat_id, text="🇷🇺Сюда вам будут приходить жалобы и предложения по вашему региону \n🇺🇿Bu erda sizning mintaqangiz bo'yicha shikoyatlar va takliflar keladi")
-    elif not user.exists(user_id):
-        print('not')
-        await UserStates.NotExist.set()
-        await bot.send_message(chat_id=chat_id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
-    else:
-        print('yes')
-        await UserStates.Exist.set()
-        await state.update_data(user_id=user_id)
-        await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
+    await language_select.admin_exist(user_id, chat_id, message, state)
 
 @dp.callback_query_handler( text= ["Ru","Uz"] ,state=[UserStates.Exist, UserStates.NotExist])
 async def select_lang(call: CallbackQuery, state: FSMContext):
-    m = await state.get_state()
-
-    await call.answer('Done')
-    language = get_language(call.data)
-
-    if language is not None:
-
-        await state.update_data(language=language)
-        await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=language['7'])
-
-        if m == 'UserStates:Exist':
-            if str(call.message.chat.id) == FILIAL:
-                msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
-                await state.update_data(button=msg.message_id)
-            else:
-                msg = await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
-                await state.update_data(button=msg.message_id)
-        elif m == 'UserStates:NotExist':
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard())
-            await state.update_data(lang_msg_id=msg.message_id)
+    await call.answer('Done') 
+    await language_select.select_language(FILIAL, call, state)
 
 @dp.message_handler(content_types=ContentType.CONTACT, state='*')
 async def get_contact(message: Message, state: FSMContext):
     phone = message.contact.phone_number
     name = message.from_user.full_name
     user_id = message.from_user.id
-
-    await state.update_data(user_id=user_id)
-    user.add(name, phone, user_id)
-
-    print('yey')
-
-    temp_data = await state.get_data()
-    message_id = temp_data.get('lang_msg_id')
-
-    await bot.delete_message(chat_id=user_id, message_id=message.message_id)
-    await bot.delete_message(chat_id=user_id, message_id=message_id)
-
-    language = temp_data.get('language')
-
-    if str(message.chat.id) == GROUP_ID:
-        msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
-        await state.update_data(button=msg.message_id)
-    else:
-        msg = await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
-        await state.update_data(button=msg.message_id)
-
+    await language_select.registation(phone, name, user_id, GROUP_ID, message, state)
 
 @dp.callback_query_handler(text=["card_reissue", "ATM", "tickets", "cancellation_the_transaction"], state='*')
 async def choose_problem_async(call: CallbackQuery, state: FSMContext):
     await call.answer('Done')
-    temp_data = await state.get_data()
-    language = temp_data.get('language')
-    await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-    if call.data == "card_reissue":
-        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['27'])
-        await state.update_data(button=msg.message_id)
-        await UserStates.card_reissue.set()
-    elif call.data == "ATM":
-        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['2'], reply_markup=add_comp(language['5'], language['11'], language['14']))
-        await state.update_data(button=msg.message_id)
-    elif call.data == "cancellation_the_transaction":
-        msg = await bot.send_message(chat_id=call.message.chat.id, text=language['37'], reply_markup=cancellation_the_transaction_type())
-        await state.update_data(button=msg.message_id)
-        
-    elif call.data == "tickets":
-        user_id = call.message.chat.id
-        result = ticket.select_ticket_card_reissue(user_id)
-        print(result)
-        ticket_num_counter = 0
-        for ticket_num in result:
-            if str(ticket_num[3]) == 'closed':
-                ticket_num_counter = ticket_num_counter + 1
-
-        atm_ticket_num_counter = 0
-        result_atm_ticket = ticket.select_atm_ticket(user_id)
-        for atm_ticket_num in result_atm_ticket:
-            if str(atm_ticket_num[5]) == 'closed':
-                atm_ticket_num_counter = atm_ticket_num_counter + 1
-        
-        if len(result) + len(result_atm_ticket) == ticket_num_counter + atm_ticket_num_counter:
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['31'], reply_markup=ticket_list( language['24'], result, result_atm_ticket ))
-            await state.update_data(button=msg.message_id)
-        else:
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['32'], reply_markup=ticket_list( language['24'], result, result_atm_ticket ))
-            await state.update_data(button=msg.message_id)
+    await main_menu.main_menu(call, state)
 
 @dp.callback_query_handler(text=["HUMO", "UZCARD"], state='*')
 async def choose_problem_async(call: CallbackQuery, state: FSMContext):
     await call.answer('Done')
-    temp_data = await state.get_data()
-    language = temp_data.get('language')
-    await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-    if call.data == "HUMO":
-        await bot.send_message(chat_id=call.message.chat.id, text=language['36'])
-        await state.update_data(cancellation_the_transaction_type_state='HUMO')
-        await UserStates.cancellation_the_transaction_state.set()
-    else:
-        await bot.send_message(chat_id=call.message.chat.id, text=language['38'])
-        await state.update_data(cancellation_the_transaction_type_state='UZCARD')
-        await UserStates.cancellation_the_transaction_state_uzcard.set()
+    await cancellation_the_transaction.choose_payment_method(call, state)
 
 
 @dp.callback_query_handler(lambda query: re.match(r'^\d+$', query.data), state='*')
@@ -226,37 +135,11 @@ async def process_callback_number(call: CallbackQuery, state: FSMContext):
  
 @dp.message_handler(content_types=ContentType.TEXT, state=UserStates.cancellation_the_transaction_state_uzcard)
 async def cancellation_the_transaction_uzcard(message: Message, state: FSMContext):
-    cancellation_the_transaction_text = message.text
-    uinfo = user.info(message.from_user.id)
-    uinfoCut = uinfo[0]
-
-    temp_data = await state.get_data()
-    language = temp_data.get('language')
-
-    user_id = message.chat.id
-    ticket.add_ticket_card_reissue(user_id, cancellation_the_transaction_text, 'UZCARD')
-    result = ticket.ticket_id_by_client_form(cancellation_the_transaction_text)
-    ticket_id = result[0]
-    cancellation_the_transaction_text = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + cancellation_the_transaction_text + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
-    cancellation_the_transaction_text = str(ticket_id[0]) + '\n' + cancellation_the_transaction_text
-    await bot.send_message(chat_id=GROUP_ID, text=cancellation_the_transaction_text, reply_markup=options_ticket_card_reissue())
-    await bot.send_message(message.chat.id, language['4'], reply_markup=Continue(language['16']))
+    await cancellation_the_transaction.uzcard(GROUP_ID, message, state)
 
 @dp.message_handler(content_types=ContentType.DOCUMENT, state=UserStates.cancellation_the_transaction_state)
 async def cancellation_the_transaction_func(message: Message, state: FSMContext):
-    file_info = message.document.file_id
-    user_id = message.chat.id
-    uinfo = user.info(message.from_user.id)
-    temp_data = await state.get_data()
-    language = temp_data.get('language')
-    uinfoCut = uinfo[0]
-    ticket.add_ticket_card_reissue(user_id, file_info, 't')
-    result = ticket.ticket_id_by_client_form(file_info)
-    ticket_id = result[0]
-    cancellation_the_transaction_ticket = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut[0]) + '</b> \nНомер телефона: <b>(' + uinfoCut[1] + ") </b>"
-    cancellation_the_transaction_ticket = str(ticket_id[0]) + '\n' + cancellation_the_transaction_ticket
-    await bot.send_document(chat_id=GROUP_ID, document=file_info, caption=cancellation_the_transaction_ticket, reply_markup=options_ticket_cancellation_the_transaction_state() )
-    await bot.send_message(message.chat.id, language['4'], reply_markup=Continue(language['16']))
+    await cancellation_the_transaction.humo(GROUP_ID, message, state)
 
 @dp.callback_query_handler(text=["close_ticket_cancellation_the_transaction_state", "answer_ticket_cancellation_the_transaction_state", "status_ticket_cancellation_the_transaction_state"], state='*')
 async def close_ticket_card_reissue_func(call: CallbackQuery, state: FSMContext):
@@ -284,35 +167,11 @@ async def close_ticket_card_reissue_func(call: CallbackQuery, state: FSMContext)
 
 @dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_status_cancellation_the_transaction)
 async def enter(message: Message, state: FSMContext):
-    status_by_admin = message.text
-    temp_data = await state.get_data()
-    current_ticket = temp_data.get('current_ticket')
-    current_ticket_text = temp_data.get('current_ticket_text')
-
-    result = ticket.file_id_by_ticket_id(current_ticket)[0]
-    ticket_file_id = result[0]
-
-    ticket.update_status_by_id(status_by_admin, current_ticket)
-
-    await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
-    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=options_ticket_cancellation_the_transaction_state() )
-    await UserStates.wait.set()
+    await cancellation_the_transaction.change_status(GROUP_ID, message, state)
     
 @dp.message_handler(chat_id=GROUP_ID, state=UserStates.admin_group_answer_cancellation_the_transaction)
 async def enter(message: Message, state: FSMContext):
-    answer_by_admin = message.text
-    temp_data = await state.get_data()
-    current_ticket = temp_data.get('current_ticket')
-    current_ticket_text = temp_data.get('current_ticket_text')
-
-    result = ticket.file_id_by_ticket_id(current_ticket)[0]
-    ticket_file_id = result[0]
-
-    ticket.update_answer_by_id(answer_by_admin, current_ticket)
-
-    await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
-    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=options_ticket_cancellation_the_transaction_state() )
-    await UserStates.wait.set()
+    await cancellation_the_transaction.change_answer(GROUP_ID, message, state)
 
 @dp.message_handler(content_types=ContentType.TEXT, state=UserStates.card_reissue)
 async def get_card_reissue(message: Message, state: FSMContext):
@@ -442,12 +301,13 @@ async def get_location(message: Message, state: FSMContext):
     latitude = message.location.latitude
     longitude = message.location.longitude
     serial_num = dis.check_distance(longitude, latitude)
-    unique_id = atm.unique_id_by_terminal(serial_num)[0]
+    
 
     temp_data = await state.get_data()
     language = temp_data.get('language')
 
     if serial_num != '0':
+        unique_id = atm.unique_id_by_terminal(serial_num)[0]
         await state.update_data(exist_photo=1, serial_num=unique_id[0])
         await bot.send_message(chat_id=message.chat.id, text=language['3'])
         await UserStates.Q4.set()
@@ -558,11 +418,12 @@ async def complaint(message: Message, state: FSMContext):
     current_day = datetime.now().weekday()
 
     last_num = ticket.get_last_num()
+    last_num = int(last_num) + 1
 
     if current_hour < 9 or current_hour >= 18 or current_day > 5:
-        await bot.send_message(message.chat.id, last_num + '\n' + language['6'], reply_markup=Continue(language['16']))
+        await bot.send_message(message.chat.id, str(last_num) + '\n' + language['6'], reply_markup=Continue(language['16']))
     else:
-        await bot.send_message(message.chat.id, last_num + '\n' + language['4'], reply_markup=Continue(language['16']))
+        await bot.send_message(message.chat.id, str(last_num) + '\n' + language['4'], reply_markup=Continue(language['16']))
 
     cats = []
     categories = [cart, cashout, exchange]
