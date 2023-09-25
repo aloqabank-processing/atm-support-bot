@@ -120,6 +120,15 @@ def options_atm_ticket():
     keyboard.add(*buttons)
     return keyboard
 
+def cancellation_the_transaction_type():
+    buttons = [
+        InlineKeyboardButton(text="HUMO", callback_data="HUMO"),
+        InlineKeyboardButton(text="UZCARD", callback_data="UZCARD"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
 def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_tickets_from_current_user ):
 
     keyboard = InlineKeyboardMarkup(row_width=1)
@@ -140,16 +149,11 @@ def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_t
     for ticket_num in atm_tickets_from_current_user:
         if str(ticket_num[5]) == 'closed':
             atm_ticket_num_counter = atm_ticket_num_counter + 1
-
-
-    if len(tickets_from_current_user) + len(atm_tickets_from_current_user) == ticket_num_counter + atm_ticket_num_counter:
-        button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
-        keyboard.add(button)
     
     else: 
         for ticket_num in tickets_from_current_user:
             if str(ticket_num[3]) != 'closed':
-                button = InlineKeyboardButton(text='Перевод карты №' + str(ticket_num[0]), callback_data=int(ticket_num[0]))
+                button = InlineKeyboardButton(text='Заявка №' + str(ticket_num[0]), callback_data=int(ticket_num[0]))
                 keyboard.add(button)
 
         for ticket_num in atm_tickets_from_current_user:
@@ -158,5 +162,8 @@ def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_t
                 print(ticket_num)
                 button = InlineKeyboardButton(text='ATM №' + str(ticket_num[0]), callback_data=int(ticket_num[0]))
                 keyboard.add(button)
+
+    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
+    keyboard.add(button)
 
     return keyboard
