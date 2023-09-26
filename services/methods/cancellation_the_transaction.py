@@ -2,7 +2,7 @@ from dispatcher import bot
 from states import UserStates
 from repository import Ticket, User
 from db import Database
-from keyboards import options_ticket_card_reissue, Continue, options_ticket_cancellation_the_transaction_state
+import keyboards as keyboard
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -36,8 +36,8 @@ async def uzcard(GROUP_ID, message, state):
     ticket_id = result[0]
     cancellation_the_transaction_text = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + cancellation_the_transaction_text + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
     cancellation_the_transaction_text = str(ticket_id[0]) + '\n' + cancellation_the_transaction_text
-    await bot.send_message(chat_id=GROUP_ID, text=cancellation_the_transaction_text, reply_markup=options_ticket_card_reissue())
-    await bot.send_message(message.chat.id, language['4'], reply_markup=Continue(language['16']))
+    await bot.send_message(chat_id=GROUP_ID, text=cancellation_the_transaction_text, reply_markup=keyboard.options_ticket_card_reissue())
+    await bot.send_message(message.chat.id, language['4'], reply_markup=keyboard.Continue(language['16']))
 
 async def humo(GROUP_ID, message, state):
     file_info = message.document.file_id
@@ -51,8 +51,8 @@ async def humo(GROUP_ID, message, state):
     ticket_id = result[0]
     cancellation_the_transaction_ticket = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut[0]) + '</b> \nНомер телефона: <b>(' + uinfoCut[1] + ") </b>"
     cancellation_the_transaction_ticket = str(ticket_id[0]) + '\n' + cancellation_the_transaction_ticket
-    await bot.send_document(chat_id=GROUP_ID, document=file_info, caption=cancellation_the_transaction_ticket, reply_markup=options_ticket_cancellation_the_transaction_state() )
-    await bot.send_message(message.chat.id, language['4'], reply_markup=Continue(language['16']))
+    await bot.send_document(chat_id=GROUP_ID, document=file_info, caption=cancellation_the_transaction_ticket, reply_markup=keyboard.options_ticket_cancellation_the_transaction_state() )
+    await bot.send_message(message.chat.id, language['4'], reply_markup=keyboard.Continue(language['16']))
 
 async def change_status(GROUP_ID, message, state):
     status_by_admin = message.text
@@ -66,7 +66,7 @@ async def change_status(GROUP_ID, message, state):
     ticket.update_status_by_id(status_by_admin, current_ticket)
 
     await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
-    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=options_ticket_cancellation_the_transaction_state() )
+    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=keyboard.options_ticket_cancellation_the_transaction_state() )
     await UserStates.wait.set()
 
 async def change_answer(GROUP_ID, message, state):
@@ -81,5 +81,26 @@ async def change_answer(GROUP_ID, message, state):
     ticket.update_answer_by_id(answer_by_admin, current_ticket)
 
     await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
-    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=options_ticket_cancellation_the_transaction_state() )
+    await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=keyboard.options_ticket_cancellation_the_transaction_state() )
     await UserStates.wait.set()
+
+async def admin_operations(GROUP_ID, call, state):
+    split_ticket_id = call.message.caption
+    split_ticket_id = split_ticket_id.split("\n")[0]
+    await state.update_data(current_ticket=split_ticket_id)
+    if call.data == "close_ticket_cancellation_the_transaction_state":
+        ticket.delete_ticket_card_reissue(split_ticket_id)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
+    elif call.data == "status_ticket_cancellation_the_transaction_state":
+        current_ticket_text = call.message.caption
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Введите статус по данной заявке:")
+        await UserStates.admin_group_status_cancellation_the_transaction.set()
+    elif call.data == "answer_ticket_cancellation_the_transaction_state":
+        current_ticket_text = call.message.caption
+        await state.update_data(current_ticket_text=current_ticket_text)
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        await bot.send_message(chat_id=GROUP_ID, text="Введите свой ответ для клиента по данной заявке:")
+        await UserStates.admin_group_answer_cancellation_the_transaction.set()
