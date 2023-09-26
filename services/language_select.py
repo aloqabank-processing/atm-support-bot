@@ -2,7 +2,7 @@ from dispatcher import bot
 from states import UserStates
 from repository import User
 from db import Database
-from keyboards import choose_language, choose_problem, choose_problem_user, share_keyboard
+import keyboards as keyboard
 from lang import get_language
 
 config_file = 'config.ini'
@@ -15,12 +15,12 @@ async def admin_exist(user_id, chat_id, message, state):
     elif not user.exists(user_id):
         print('not')
         await UserStates.NotExist.set()
-        await bot.send_message(chat_id=chat_id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
+        await bot.send_message(chat_id=chat_id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=keyboard.choose_language())
     else:
         print('yes')
         await UserStates.Exist.set()
         await state.update_data(user_id=user_id)
-        await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=choose_language())
+        await bot.send_message(chat_id=message.chat.id, text="🇷🇺Выберите язык \n🇺🇿Tilni tanlang", reply_markup=keyboard.choose_language())
 
 async def select_language(FILIAL, call, state):
     current_state = await state.get_state()
@@ -35,14 +35,17 @@ async def select_language(FILIAL, call, state):
 
         if current_state == 'UserStates:Exist':
             if str(call.message.chat.id) == FILIAL:
-                await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
+                await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34']))
             else:
-                await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))     
+                await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem_user(language['18'], language['17'], language['19']))     
         elif current_state == 'UserStates:NotExist':
-            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=share_keyboard())
+            msg = await bot.send_message(chat_id=call.message.chat.id, text=language['1'], reply_markup=keyboard.share_keyboard())
             await state.update_data(lang_msg_id=msg.message_id)
 
-async def registation(phone, name, user_id, GROUP_ID, message, state):
+async def registation(GROUP_ID, message, state):
+    phone = message.contact.phone_number
+    name = message.from_user.full_name
+    user_id = message.from_user.id
     await state.update_data(user_id=user_id)
     user.add(name, phone, user_id)
 
@@ -55,6 +58,6 @@ async def registation(phone, name, user_id, GROUP_ID, message, state):
     language = temp_data.get('language')
 
     if str(message.chat.id) == GROUP_ID:
-        await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem(language['18'], language['17'], language['19'], language['34']))
+        await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34']))
     else:
-        await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=choose_problem_user(language['18'], language['17'], language['19']))
+        await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem_user(language['18'], language['17'], language['19']))
