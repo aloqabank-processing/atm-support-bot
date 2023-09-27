@@ -29,5 +29,7 @@ class UserStates(StatesGroup):
     admin_group_status_cancellation_the_transaction = State()
     admin_group_answer_cancellation_the_transaction = State()
     cancellation_the_transaction_state_uzcard = State()
-    
+    atm_repair_get_form = State()
+    admin_group_status_atm_repair = State()
+    admin_group_answer_atm_repair = State()
     
