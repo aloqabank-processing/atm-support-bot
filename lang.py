@@ -36,7 +36,12 @@ ru = {
     '35': "Ремонт банкомата",
     '36': "Отправте файл для отмены транзакции",
     '37': "Выберите тип платежной системы",
-    '38': "Отправьте данные в виде\nНомер карты:\nСумма:\nДата:\nMerchant ID:\nTerminal ID:"
+    '38': "Отправьте данные в виде\nНомер карты:\nСумма:\nДата:\nMerchant ID:\nTerminal ID:",
+    '39': "Ремонт банкомата",
+    '40': "Выберите филиал",
+    '41': "Выберите модель банкомата",
+    '42': "Выберите terminal id",
+    '43': "Напишите всю информацию о поломке",
 
 }
 
@@ -78,7 +83,13 @@ uz = {
     '35': "Bankomatni ta'mirlash",
     '36': "Tranzaksiyani bekor qilish uchun fayl yuboring",
     '37': "To'lov tizimining turini tanlang",
-    '38': "Ma'lumotlarni quyidagicha yuboring\nКарта раками:\nСумма:\nСана:\nMerchant ID:\nTerminal ID:"
+    '38': "Ma'lumotlarni quyidagicha yuboring\nКарта раками:\nСумма:\nСана:\nMerchant ID:\nTerminal ID:",
+    '39': "Bankomatni ta'mirlash",
+    '40': "Filialni tanlang",
+    '41': "Bankomat modelini tanlang",
+    '42': "Terminal identifikatorini tanlang",
+    '43': "Buzilish haqidagi barcha ma'lumotlarni yozing",
+
     # for example:
     # 'key': 'value"
 }
