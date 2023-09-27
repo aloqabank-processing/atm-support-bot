@@ -46,11 +46,13 @@ async def humo(GROUP_ID, message, state):
     temp_data = await state.get_data()
     language = temp_data.get('language')
     uinfoCut = uinfo[0]
-    ticket.add_ticket_card_reissue(user_id, file_info, 't')
-    result = ticket.ticket_id_by_client_form(file_info)
-    ticket_id = result[0]
+
+    ticket_id = ticket.get_last_num_card_reissue()
+    ticket_id = int(ticket_id) + 1
+    ticket.add_ticket_card_reissue(user_id, file_info, 'cancellation_the_transaction')
+
     cancellation_the_transaction_ticket = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut[0]) + '</b> \nНомер телефона: <b>(' + uinfoCut[1] + ") </b>"
-    cancellation_the_transaction_ticket = str(ticket_id[0]) + '\n' + cancellation_the_transaction_ticket
+    cancellation_the_transaction_ticket = str(ticket_id) + '\n' + cancellation_the_transaction_ticket
     await bot.send_document(chat_id=GROUP_ID, document=file_info, caption=cancellation_the_transaction_ticket, reply_markup=keyboard.options_ticket_cancellation_the_transaction_state() )
     await bot.send_message(message.chat.id, language['4'], reply_markup=keyboard.Continue(language['16']))
 
