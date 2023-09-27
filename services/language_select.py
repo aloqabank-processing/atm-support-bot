@@ -35,7 +35,7 @@ async def select_language(FILIAL, call, state):
 
         if current_state == 'UserStates:Exist':
             if str(call.message.chat.id) == FILIAL:
-                await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34']))
+                await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34'], language['39']))
             else:
                 await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem_user(language['18'], language['17'], language['19']))     
         elif current_state == 'UserStates:NotExist':
@@ -58,6 +58,6 @@ async def registation(GROUP_ID, message, state):
     language = temp_data.get('language')
 
     if str(message.chat.id) == GROUP_ID:
-        await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34']))
+        await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34'], language['39']))
     else:
         await bot.send_message(chat_id=message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem_user(language['18'], language['17'], language['19']))
