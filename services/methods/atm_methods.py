@@ -26,8 +26,7 @@ async def device_by_location(message, state):
         await bot.send_message(chat_id=message.chat.id, text=language['3'])
         await UserStates.Q4.set()
     else:
-        msg = await bot.send_message(chat_id=message.chat.id, text=language['33'], reply_markup=keyboard.method_to_choose_ATM(language['22'], language['23'], language['24']))
-        await state.update_data(button=msg.message_id)
+        await bot.send_message(chat_id=message.chat.id, text=language['33'], reply_markup=keyboard.method_to_choose_ATM(language['22'], language['23'], language['24']))
 
 async def qr_methods(call, state):
     temp_data = await state.get_data()
