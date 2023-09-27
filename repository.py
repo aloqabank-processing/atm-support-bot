@@ -98,6 +98,12 @@ class Ticket:
         result = self.db.execute_query(query)
         last_num = result[len(result)-1]
         return last_num[0]
+    
+    def get_last_num_card_reissue(self):
+        query = "SELECT ticket_id FROM ticket_card_reissue"
+        result = self.db.execute_query(query)
+        last_num = result[len(result)-1]
+        return last_num[0]
 
 
 class User:
@@ -136,6 +142,25 @@ class Atm:
 
     def get_all_atm_coordinates(self):
         query = "SELECT * FROM atm_location"
+        result = self.db.execute_query(query)
+        return result
+    
+    def get_all_terminal_id(self):
+        query = "SELECT TerminalID FROM atm"
+        result = self.db.execute_query(query)
+        terminal_id_array = []
+        for temp_terminal_id in result:
+            terminal_id_array.append(str(temp_terminal_id[0]))
+
+        return terminal_id_array
+
+    def get_model_by_filial(self, state):
+        query = "SELECT Model FROM atm WHERE State = '%s'" % (str(state))
+        result = self.db.execute_query(query)
+        return result
+    
+    def get_terminal_id_by_model(self, state, model):
+        query = "SELECT TerminalID FROM atm WHERE State = '%s' AND Model = '%s'" % (str(state), str(model))
         result = self.db.execute_query(query)
         return result
 
