@@ -53,10 +53,11 @@ def no_photo(text_for_add, text_for_enter):
     keyboard.add(*buttons)
     return keyboard
 
-def choose_problem(text_for_card_reissue, text_for_ATM, text_for_tickets, text_for_cancellation_the_transaction ):
+def choose_problem(text_for_card_reissue, text_for_ATM, text_for_tickets, text_for_cancellation_the_transaction, text_for_atm_repair ):
     buttons = [
         InlineKeyboardButton(text=text_for_cancellation_the_transaction, callback_data="cancellation_the_transaction"),
         InlineKeyboardButton(text=text_for_card_reissue, callback_data="card_reissue"),
+        InlineKeyboardButton(text=text_for_atm_repair, callback_data="atm_repair"),
         InlineKeyboardButton(text=text_for_tickets, callback_data="tickets"),
     ]
     keyboard = InlineKeyboardMarkup(row_width=1)
@@ -95,6 +96,16 @@ def options_ticket_card_reissue():
         InlineKeyboardButton(text="ОСТАВИТЬ ОТВЕТ", callback_data="answer_ticket_card_reissue"),
         InlineKeyboardButton(text="ИЗМЕНИТЬ СТАТУС", callback_data="status_ticket_card_reissue"),
         InlineKeyboardButton(text="ЗАКРЫТЬ ТИКЕТ", callback_data="close_ticket_card_reissue"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(*buttons)
+    return keyboard
+
+def options_ticket_atm_repair():
+    buttons = [
+        InlineKeyboardButton(text="ОСТАВИТЬ ОТВЕТ", callback_data="answer_ticket_atm_repair"),
+        InlineKeyboardButton(text="ИЗМЕНИТЬ СТАТУС", callback_data="status_ticket_atm_repair"),
+        InlineKeyboardButton(text="ЗАКРЫТЬ ТИКЕТ", callback_data="close_ticket_atm_repair"),
     ]
     keyboard = InlineKeyboardMarkup(row_width=1)
     keyboard.add(*buttons)
@@ -166,4 +177,43 @@ def ticket_list( text_for_back_from_choose_ATM, tickets_from_current_user, atm_t
     button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
     keyboard.add(button)
 
+    return keyboard
+
+def filial_list( text_for_back_from_choose_ATM ):
+    buttons = [
+        InlineKeyboardButton(text="Amaliyot", callback_data="Amaliyot"),
+        InlineKeyboardButton(text="Qoraqalpogiston", callback_data="Qoraqalpogiston"),
+        InlineKeyboardButton(text="Xorazm", callback_data="Xorazm"),
+        InlineKeyboardButton(text="Namangan", callback_data="Namangan"),
+        InlineKeyboardButton(text="Andijon", callback_data="Andijon"),
+        InlineKeyboardButton(text="Buxoro", callback_data="Buxoro"),
+        InlineKeyboardButton(text="Surxondaryo", callback_data="Surxondaryo"),
+        InlineKeyboardButton(text="Samarqand", callback_data="Samarqand"),
+        InlineKeyboardButton(text="Qashqadaryo", callback_data="Qashqadaryo"),
+        InlineKeyboardButton(text="Navoiy", callback_data="Navoiy"),
+        InlineKeyboardButton(text="Fargona", callback_data="Fargona"),
+        InlineKeyboardButton(text="Jizzax", callback_data="Jizzax"),
+        InlineKeyboardButton(text="Qoqon", callback_data="Qoqon"),        
+        InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(*buttons)
+    return keyboard
+
+def model_list( model, text_for_back_from_choose_ATM ):
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    for temp_model in model:
+        button = InlineKeyboardButton(text=str(temp_model), callback_data=str(temp_model))
+        keyboard.add(button)
+    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM"),
+    keyboard.add(button)
+    return keyboard
+
+def terminal_id_list( terminal_id, text_for_back_from_choose_ATM ):
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    for temp_terminal_id in terminal_id:
+        button = InlineKeyboardButton(text=str(temp_terminal_id[0]), callback_data=str(temp_terminal_id[0]))
+        keyboard.add(button)
+    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM"),
+    keyboard.add(button)
     return keyboard
