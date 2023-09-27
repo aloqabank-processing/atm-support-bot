@@ -19,11 +19,11 @@ async def get_form(GROUP_ID, message, state):
     language = temp_data.get('language')
 
     user_id = message.chat.id
-    ticket.add_ticket_card_reissue(user_id, card_reissue_ticket, 'c')
-    result = ticket.ticket_id_by_client_form(card_reissue_ticket)
-    ticket_id = result[0]
+    ticket_id = ticket.get_last_num_card_reissue()
+    ticket_id = int(ticket_id) + 1
+    ticket.add_ticket_card_reissue(user_id, card_reissue_ticket, 'card_reissue')
     card_reissue_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + card_reissue_ticket + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
-    card_reissue_ticket = str(ticket_id[0]) + '\n' + card_reissue_ticket
+    card_reissue_ticket = str(ticket_id) + '\n' + card_reissue_ticket
     await bot.send_message(chat_id=GROUP_ID, text=card_reissue_ticket, reply_markup=keyboard.options_ticket_card_reissue())
     
     current_hour = datetime.now().hour
