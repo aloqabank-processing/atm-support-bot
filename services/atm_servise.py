@@ -38,7 +38,7 @@ async def method_to_choose_atm(FILIAL, call, state):
         await UserStates.Q6.set()
     else:
         if str(call.message.chat.id) == FILIAL:
-            await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34']))
+            await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem(language['18'], language['17'], language['19'], language['34'], language['39']))
         else:
             await bot.send_message(chat_id=call.message.chat.id, text=language['20'], reply_markup=keyboard.choose_problem_user(language['18'], language['17'], language['19']))
 
