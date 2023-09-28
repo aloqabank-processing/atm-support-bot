@@ -205,7 +205,7 @@ def model_list( model, text_for_back_from_choose_ATM ):
     for temp_model in model:
         button = InlineKeyboardButton(text=str(temp_model), callback_data=str(temp_model))
         keyboard.add(button)
-    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM"),
+    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
     keyboard.add(button)
     return keyboard
 
@@ -214,6 +214,6 @@ def terminal_id_list( terminal_id, text_for_back_from_choose_ATM ):
     for temp_terminal_id in terminal_id:
         button = InlineKeyboardButton(text=str(temp_terminal_id[0]), callback_data=str(temp_terminal_id[0]))
         keyboard.add(button)
-    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM"),
+    button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
     keyboard.add(button)
     return keyboard
