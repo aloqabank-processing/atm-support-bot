@@ -54,15 +54,15 @@ async def ticket_menu(call, state):
 
     if len(result) != 0:
         result_of_selection = result[0]
-        if str(result_of_selection[5]) == 'card_reissue' or str(result_of_selection[5]) == 'UZCARD':
+        if str(result_of_selection[5]) == 'cancellation_the_transaction':
+            client_ticket_form = language['28'] + str(number) + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
+
+            await bot.send_document(chat_id=call.message.chat.id, document=str(result_of_selection[2]), caption=client_ticket_form, reply_markup=keyboard.back_to_choose_ATM(language['24']))
+        else:
             client_ticket_form = language['28'] + str(number) + "\n" + result_of_selection[2] + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
 
             msg = await bot.send_message(chat_id=call.message.chat.id, text=client_ticket_form, reply_markup=keyboard.back_to_choose_ATM(language['24']))
             await state.update_data(button=msg.message_id)
-        else:
-            client_ticket_form = language['28'] + str(number) + "\n" + language['29'] + result_of_selection[3] + "\n" + language['30'] + result_of_selection[4]
-
-            await bot.send_document(chat_id=call.message.chat.id, document=str(result_of_selection[2]), caption=client_ticket_form, reply_markup=keyboard.back_to_choose_ATM(language['24']))
 
     if len(atm_result) != 0:
         result_of_selection = atm_result[0]
