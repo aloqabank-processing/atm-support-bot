@@ -46,16 +46,16 @@ ru = {
 }
 
 uz = {
-    '1': 'Telefon raqamini yuboring',
+    '1': 'Telefon raqamingizni yuboring',
     '2': "Sizning muammoingizga tegishli toifani tanlang",
-    '3': "Shikoyat bilan sharhni kiriting",
-    '4': "Salom! Murojaat qilganingiz uchun tashakkur! Sifat nazorati bo'limiga topshirildi, yaqin kelajakda ular sizga fikr-mulohazalarni taqdim etadilar! 'Keyingi' boshlash menyusiga kirish va arizalaringizning holatini kuzatish uchun",
+    '3': "Shikoyatingizni sharhlang",
+    '4': "Salom! Murojaat qilganingiz uchun tashakkur! Sizning murojaatingiz sifat nazorati bo'limiga topshirildi, yaqin vaqtda ular sizga fikr-mulohazalarni taqdim etadilar! 'Keyingi' boshlash menyusiga kirish va arizalaringizning holatini kuzatish uchun",
     '5': "Boshqalar",
-    '6': "Salom! Murojaat qilganingiz uchun tashakkur! Sifat nazorati bo'limiga topshirildi, afsuski, endi ish vaqti yo'q. Ular ish vaqtida siz bilan bog'lanishadi. Biz dushanbadan jumagacha, soat 9:00 dan 18:00 gacha ishlaymiz. Tugmani bosing 'Keyingi' boshlash menyusiga kirish va arizalaringizning holatini kuzatish uchun",
+    '6': "Salom! Murojaat qilganingiz uchun tashakkur! Sizning murojaatingiz sifat nazorati bo'limiga topshirildi, afsuski hozir ish vaqti emas. Ular ish vaqtida siz bilan bog'lanishadi. Biz dushanbadan jumagacha soat 9:00 dan 18:00 gacha ishlaymiz. Tugmani bosing 'Keyingi' boshlash menyusiga kirish va arizalaringizning holatini kuzatish uchun",
     '7': "🇺🇿Til tanlangan",
-    '8': "Bankomatda QR kodini suratga oling va fotosuratni ushbu suhbatga yuboring. Shunday qilib, biz qaysi bankomatda muammo yuz berganini aniq bilib olamiz",
+    '8': "Bankomatda QR kodini suratga oling va fotosuratni ushbu chatga yuboring. Shunday qilib, biz qaysi bankomatda muammo yuz berganini aniq bilib olamiz",
     '9': "Fotosuratni yuborish imkoniyati yo'q",
-    '10': "QR kodi fotosuratda ko'rinmaydi. Uni yaqinroq suratga olishga harakat qiling va iloji bo'lsa, fotosuratning qo'shimcha qismlarini kesib oling",
+    '10': "QR kodi fotosuratda sifatsiz. Uni yaqinroq suratga olishga harakat qiling va ilmkon bo'lsa, fotosuratning qo'shimcha qismlarini kesib oling",
     '11': "Bankomat kartani yutib yubordi",
     '12': "Seriya raqamini qo'lda kiriting",
     '13': "Bankomat ID kiriting. Siz uni bankomatning QR kodi yonida bilib olishingiz mumkin",
@@ -82,8 +82,8 @@ uz = {
     '34': "Bitimni bekor qilish",
     '35': "Bankomatni ta'mirlash",
     '36': "Tranzaksiyani bekor qilish uchun fayl yuboring",
-    '37': "To'lov tizimining turini tanlang",
-    '38': "Ma'lumotlarni quyidagicha yuboring\nКарта раками:\nСумма:\nСана:\nMerchant ID:\nTerminal ID:",
+    '37': "To'lov tizimi turini tanlang",
+    '38': "Ma'lumotlarni quyidagicha yuboring\nKarta raqami:\nSumma:\nSana:\nMerchant ID:\nTerminal ID:",
     '39': "Bankomatni ta'mirlash",
     '40': "Filialni tanlang",
     '41': "Bankomat modelini tanlang",
@@ -93,7 +93,6 @@ uz = {
     # for example:
     # 'key': 'value"
 }
-
 
 def get_language(call_data):
     if call_data == "Ru":
