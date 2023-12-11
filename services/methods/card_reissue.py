@@ -21,6 +21,20 @@ async def get_form(GROUP_ID, message, state):
     user_id = message.chat.id
     ticket_id = ticket.get_last_num_card_reissue()
     ticket_id = int(ticket_id) + 1
+
+    url = "https://185.217.131.28:7000/feedback/"
+
+    # feedback_data = {
+    #     "type": "TRANSFER",
+    #     "user_id": str(user_id),
+    #     "client_form": com,
+    #     "category": "Другое",
+    #     "device_uid": '-' if exist_photo == 0 else str(serial_num),
+    # }
+
+    # async with httpx.AsyncClient() as client:
+    #     response = await client.post(url, json=feedback_data)
+
     ticket.add_ticket_card_reissue(user_id, card_reissue_ticket, 'card_reissue')
     card_reissue_ticket = "Заявка на перевод карты от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + card_reissue_ticket + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
     card_reissue_ticket = str(ticket_id) + '\n' + card_reissue_ticket
