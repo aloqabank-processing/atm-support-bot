@@ -4,6 +4,7 @@ from states import UserStates
 from datetime import datetime
 from repository import Ticket, User, Atm
 from db import Database
+import httpx
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -110,12 +111,35 @@ async def get_form(GROUP_ID, message, state):
     else:
         await bot.send_message(message.chat.id, str(last_num) + '\n' + language['4'], reply_markup=keyboard.Continue(language['16']))
     
+    url = "https://185.217.131.28:7000/feedback/"
+
     if categoria == 1:
-        ticket.add_status(user_id, com, 'Другое', '-' if exist_photo == 0 else serial_num)
+        feedback_data = {
+            "type": "ATM_FEEDBACK",
+            "user_id": str(user_id),
+            "client_form": com,
+            "category": "Другое",
+            "device_uid": '-' if exist_photo == 0 else str(serial_num),
+        }
     elif categoria == 2:
-        ticket.add_status(user_id, com, 'Банкомат захватил карту', '-' if exist_photo == 0 else serial_num)
-    else: 
-        ticket.add_status(user_id, com, 'Проблемы с выдачей наличных', '-' if exist_photo == 0 else serial_num)
+        feedback_data = {
+            "type": "ATM_FEEDBACK",
+            "user_id": str(user_id),
+            "client_form": com,
+            "category": "Банкомат захватил карту",
+            "device_uid": '-' if exist_photo == 0 else str(serial_num),
+        }
+    else:
+        feedback_data = {
+            "type": "ATM_FEEDBACK",
+            "user_id": str(user_id),
+            "client_form": com,
+            "category": "Проблемы с выдачей наличных",
+            "device_uid": '-' if exist_photo == 0 else str(serial_num),
+        }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=feedback_data)
 
     if exist_photo == 0:
         await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + message.text, reply_markup=keyboard.options_atm_ticket())
