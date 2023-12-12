@@ -5,6 +5,7 @@ from datetime import datetime
 from repository import Ticket, User, Atm
 from db import Database
 import httpx
+import api_query as api_query
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -111,8 +112,6 @@ async def get_form(GROUP_ID, message, state):
     else:
         await bot.send_message(message.chat.id, str(last_num) + '\n' + language['4'], reply_markup=keyboard.Continue(language['16']))
     
-    url = "https://185.217.131.28:7000/feedback/"
-
     if categoria == 1:
         feedback_data = {
             "type": "ATM_FEEDBACK",
@@ -138,8 +137,7 @@ async def get_form(GROUP_ID, message, state):
             "device_uid": '-' if exist_photo == 0 else str(serial_num),
         }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=feedback_data)
+    await api_query.send_feedback(feedback_data)
 
     if exist_photo == 0:
         await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + message.text, reply_markup=keyboard.options_atm_ticket())
