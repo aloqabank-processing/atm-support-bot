@@ -1,18 +1,52 @@
-import httpx
-import ssl
-from httpx._config import SSLConfig
+import requests
 
-async def send_feedback(feedback_data):
-    url = "https://185.217.131.28:7000/feedback/"
+class AdministrationModule:
+    async def get_user(telegram_user_id):
+        url = "http://10.231.202.221:7010/user/"
+        params = {
+            "telegram_user_id": telegram_user_id
+        }
+        response = requests.get(url, params=params)
 
-    ssl_config = SSLConfig(verify=False, http2=True)
+        if response.status_code == 200:
+            return response.json()
+        else: 
+            return None
+        
+    async def add_user(name, mobile, telegram_user_id):
+        url = "http://10.231.202.221:7010/user/"
+        params = {
+            "name": name,
+            "mobile": mobile,
+            "telegram_user_id": telegram_user_id
+        }
+        response = requests.post(url, params=params)
 
-    async with httpx.AsyncClient(ssl=ssl_config) as client:
-        response = await client.post(url, json=feedback_data)
-
-    if response.status_code == 200:
-        print("Запрос успешно отправлен")
+        if response.status_code == 200:
+            return response.json()
+        else: 
+            return None
+        
+class FeedbackModule:
+    async def add_feedback(feedback_data):
+        url = "http://10.231.202.221:7010/feedback/"
+        response = requests.post(url, params=feedback_data)
         print(response.json())
-    else:
-        print(f"Ошибка при отправке запроса: {response.status_code}")
-        print(response.text)
+
+    async def update_answer(answer_by_admin, current_ticket):
+        url = "http://10.231.202.221:7010/feedback/" + str(current_ticket) + "/answer"
+        params = {
+            "answer": answer_by_admin
+        }
+        response = requests.put(url, params=params)
+        print(response.json())
+
+    async def update_status(feedback_id = None, status = None):
+        url = "http://10.231.202.221:7010/feedback/" + str(feedback_id) + "/status"
+        params = {
+            "status": status
+        }
+        response = requests.put(url, params=params)
+        print(response.json())
+
+
