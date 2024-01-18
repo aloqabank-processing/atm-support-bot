@@ -3,6 +3,7 @@ from states import UserStates
 from repository import Ticket, User
 from db import Database
 import keyboards as keyboard
+from api_query import FeedbackModule
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -65,7 +66,7 @@ async def change_status(GROUP_ID, message, state):
     result = ticket.file_id_by_ticket_id(current_ticket)[0]
     ticket_file_id = result[0]
 
-    ticket.update_status_by_id(status_by_admin, current_ticket)
+    await FeedbackModule.update_status(feedback_id=current_ticket, status=status_by_admin)
 
     await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
     await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=keyboard.options_ticket_cancellation_the_transaction_state() )
@@ -80,7 +81,7 @@ async def change_answer(GROUP_ID, message, state):
     result = ticket.file_id_by_ticket_id(current_ticket)[0]
     ticket_file_id = result[0]
 
-    ticket.update_answer_by_id(answer_by_admin, current_ticket)
+    await FeedbackModule.update_answer(answer_by_admin, current_ticket)
 
     await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
     await bot.send_document(chat_id=GROUP_ID, document=str(ticket_file_id), caption=current_ticket_text, reply_markup=keyboard.options_ticket_cancellation_the_transaction_state() )
@@ -91,7 +92,7 @@ async def admin_operations(GROUP_ID, call, state):
     split_ticket_id = split_ticket_id.split("\n")[0]
     await state.update_data(current_ticket=split_ticket_id)
     if call.data == "close_ticket_cancellation_the_transaction_state":
-        ticket.delete_ticket_card_reissue(split_ticket_id)
+        await FeedbackModule.update_status(feedback_id=split_ticket_id, status="StatusType.CLOSED")
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
     elif call.data == "status_ticket_cancellation_the_transaction_state":
