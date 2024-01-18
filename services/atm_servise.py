@@ -5,7 +5,7 @@ from datetime import datetime
 from repository import Ticket, User, Atm
 from db import Database
 import httpx
-import api_query as api_query
+from api_query import FeedbackModule, AdministrationModule
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -50,7 +50,7 @@ async def admin_operations(GROUP_ID, call, state):
     await state.update_data(current_ticket=split_ticket_id)
 
     if call.data == "close_atm_ticket":
-        ticket.delete_atm_ticket(split_ticket_id)
+        await FeedbackModule.update_status(feedback_id=split_ticket_id, status="StatusType.CLOSED")
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
     elif call.data == "status_atm_ticket":
@@ -72,7 +72,7 @@ async def change_status(GROUP_ID, message, state):
     current_ticket = temp_data.get('current_ticket')
     current_ticket_text = temp_data.get('current_ticket_text')
 
-    ticket.update_ticket_status_by_id(status_by_admin, current_ticket)
+    await FeedbackModule.update_status(feedback_id=current_ticket, status=status_by_admin)
 
     await bot.send_message(chat_id=GROUP_ID, text="Статус заявки успешно обновлен!")
     await bot.send_message(chat_id=GROUP_ID, text=current_ticket_text, reply_markup=keyboard.options_atm_ticket() )
@@ -84,7 +84,7 @@ async def change_answer(GROUP_ID, message, state):
     current_ticket = temp_data.get('current_ticket')
     current_ticket_text = temp_data.get('current_ticket_text')
 
-    ticket.update_ticket_answer_by_id(answer_by_admin, current_ticket)
+    await FeedbackModule.update_answer(answer_by_admin, current_ticket)
 
     await bot.send_message(chat_id=GROUP_ID, text="Ответ клиенту успешно добавлен!")
     await bot.send_message(chat_id=GROUP_ID, text=current_ticket_text, reply_markup=keyboard.options_atm_ticket() )
@@ -98,7 +98,7 @@ async def get_form(GROUP_ID, message, state):
     categoria = temp_data['category']
 
     user_id = message.from_user.id
-    uinfo = user.info(message.chat.id)
+    uinfo = await AdministrationModule.get_user(message.chat.id)
     uinfoCut = uinfo[0]
     com = message.text.replace("'", "''")
 
@@ -137,16 +137,16 @@ async def get_form(GROUP_ID, message, state):
             "device_uid": '-' if exist_photo == 0 else str(serial_num),
         }
 
-    await api_query.send_feedback(feedback_data)
+    await FeedbackModule.add_feedback(feedback_data)
 
     if exist_photo == 0:
-        await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + message.text, reply_markup=keyboard.options_atm_ticket())
+        await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut['name']) + '</b> (' + uinfoCut['mobile'] + ')' + '\n' + message.text, reply_markup=keyboard.options_atm_ticket())
     else:
         atm_data = atm.read(str(serial_num))
         region = atm_data[0]
         TerminalID = atm_data[0]
         Location = atm_data[0]
-        await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut[0]) + '</b> (' + uinfoCut[1] + ')' + '\n' + '<b>' + 'Region: ' + str(region[1]) + '\n' + 'Terminal ID: ' + str(TerminalID[2]) + '\n' + 'Location: ' + str(Location[5]) + '</b>' + '\n' + message.text, reply_markup=keyboard.options_atm_ticket())
+        await bot.send_message(chat_id=GROUP_ID, text= str(last_num) + '\n' + '<b>' + str(uinfoCut['name']) + '</b> (' + uinfoCut['mobile'] + ')' + '\n' + '<b>' + 'Region: ' + str(region[1]) + '\n' + 'Terminal ID: ' + str(TerminalID[2]) + '\n' + 'Location: ' + str(Location[5]) + '</b>' + '\n' + message.text, reply_markup=keyboard.options_atm_ticket())
         chat_id = user.admin_by_state(str(region[1]))
         chat_idCut = chat_id[0]
         # for i in chat_idCut:
