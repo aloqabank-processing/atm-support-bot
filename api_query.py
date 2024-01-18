@@ -49,4 +49,12 @@ class FeedbackModule:
         response = requests.put(url, params=params)
         print(response.json())
 
+    async def get_feedback(feedback_id=None):
+        url = "http://10.231.202.221:7010/feedback/" + str(feedback_id)
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        else: 
+            return None
+
 
