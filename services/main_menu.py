@@ -4,6 +4,7 @@ from repository import Ticket
 from db import Database
 import keyboards as keyboard
 from datetime import datetime
+from api_query import FeedbackModule
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -51,6 +52,7 @@ async def ticket_menu(call, state):
 
     result = ticket.ticket_by_ticket_id(number)
     atm_result = ticket.atm_ticket_by_ticket_id(number)
+    # await FeedbackModule.get_feedback(feedback_id=number)
 
     if len(result) != 0:
         result_of_selection = result[0]
