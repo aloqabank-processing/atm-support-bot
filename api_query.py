@@ -56,5 +56,13 @@ class FeedbackModule:
             return response.json()
         else: 
             return None
+        
+    async def get_feedback_id_last(user_id):
+        url = "http://10.231.202.221:7010/feedback/" + str(user_id) + "/feedback_id/last"
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        else: 
+            return None
 
 
