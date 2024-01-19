@@ -3,7 +3,7 @@ from states import UserStates
 from repository import Ticket, User
 from db import Database
 import keyboards as keyboard
-from api_query import FeedbackModule
+from api_query import FeedbackModule, AdministrationModule
 
 config_file = 'config.ini'
 db = Database(config_file)
@@ -26,6 +26,7 @@ async def choose_payment_method(call, state):
 async def uzcard(GROUP_ID, message, state):
     cancellation_the_transaction_text = message.text
     uinfo = user.info(message.from_user.id)
+    uinfo = await AdministrationModule.get_user(message.from_user.id)
     uinfoCut = uinfo[0]
 
     temp_data = await state.get_data()
@@ -33,9 +34,17 @@ async def uzcard(GROUP_ID, message, state):
 
     user_id = message.chat.id
     ticket.add_ticket_card_reissue(user_id, cancellation_the_transaction_text, 'UZCARD')
-    result = ticket.ticket_id_by_client_form(cancellation_the_transaction_text)
-    ticket_id = result[0]
-    cancellation_the_transaction_text = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut[0]) + '</b> \nФорма составленная клиентом: \n------------------\n' + cancellation_the_transaction_text + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut[1] + ") </b>"
+
+    params = {
+        "type": "UZCARD",
+        "user_id": uinfoCut['telegram_user_id'],
+        "client_form": cancellation_the_transaction_text
+    }
+    await FeedbackModule.add_feedback(params)
+
+    result = FeedbackModule.get_feedback_id_last(user_id)
+    ticket_id = result['feedback_id']
+    cancellation_the_transaction_text = "Заявка на отмену транзакции от " + '<b>' + str(uinfoCut['name']) + '</b> \nФорма составленная клиентом: \n------------------\n' + cancellation_the_transaction_text + '\n------------------\n' + "Номер телефона: <b>(" + uinfoCut['mobile'] + ") </b>"
     cancellation_the_transaction_text = str(ticket_id[0]) + '\n' + cancellation_the_transaction_text
     await bot.send_message(chat_id=GROUP_ID, text=cancellation_the_transaction_text, reply_markup=keyboard.options_ticket_card_reissue())
     await bot.send_message(message.chat.id, language['4'], reply_markup=keyboard.Continue(language['16']))
