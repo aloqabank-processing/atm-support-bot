@@ -41,7 +41,6 @@ async def admin_operations(GROUP_ID, call, state):
     split_ticket_id = split_ticket_id.split("\n")[0]
     await state.update_data(current_ticket=split_ticket_id)
     if call.data == "close_ticket_card_reissue":
-        ticket.delete_ticket_card_reissue(split_ticket_id)
         await FeedbackModule.update_status(feedback_id=split_ticket_id, status="StatusType.CLOSED")
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await bot.send_message(chat_id=GROUP_ID, text="Тикет №" + str(split_ticket_id) + " закрыт")
