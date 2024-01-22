@@ -65,4 +65,23 @@ class FeedbackModule:
         else: 
             return None
 
-
+class MonitoringModel:
+    async def get_model_by_state(state):
+        url = f"http://10.231.202.221:7020/device/{state}/model"
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        else: 
+            return None
+        
+    async def get_terminal_id(state, model):
+        url = f"http://10.231.202.221:7020/device/terminal_id"
+        params = {
+            "state": state,
+            "model": model
+        }
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            return response.json()
+        else: 
+            return None
