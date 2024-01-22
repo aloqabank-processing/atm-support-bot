@@ -212,7 +212,7 @@ def model_list( model, text_for_back_from_choose_ATM ):
 def terminal_id_list( terminal_id, text_for_back_from_choose_ATM ):
     keyboard = InlineKeyboardMarkup(row_width=2)
     for temp_terminal_id in terminal_id:
-        button = InlineKeyboardButton(text=str(temp_terminal_id[0]), callback_data=str(temp_terminal_id[0]))
+        button = InlineKeyboardButton(text=str(temp_terminal_id['TerminalID']), callback_data=str(temp_terminal_id['TerminalID']))
         keyboard.add(button)
     button = InlineKeyboardButton(text=text_for_back_from_choose_ATM, callback_data="back_from_choose_ATM")
     keyboard.add(button)
